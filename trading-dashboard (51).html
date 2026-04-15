@@ -1,0 +1,1595 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EdgeTrack — Trading Dashboard</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%23080c12'/%3E%3Crect width='32' height='32' rx='6' fill='none' stroke='%2300d4ff' stroke-width='1.5'/%3E%3Ccircle cx='16' cy='16' r='4' fill='%2300d4ff'/%3E%3C/svg%3E">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=Syne:wght@700;800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+
+/* ── DARK THEME (default) ───────────────────────────────── */
+:root {
+  --bg:        #080c12;
+  --bg2:       #131c2b;
+  --bg3:       #1a2538;
+  --bg4:       #202e42;
+  --border:    #233044;
+  --border2:   #2d3f58;
+  --text:      #e8edf5;
+  --muted:     #5a6a82;
+  --muted2:    #8899b0;
+  --accent:    #00d4ff;
+  --green:     #2dd4a0;
+  --red:       #e05470;
+  --card-glow: 0 0 0 1px var(--border), 0 8px 32px rgba(0,0,0,0.45);
+  --header-bg: rgba(8,12,18,0.97);
+  --nav-bg:    #131c2b;
+
+  /* Panel row unit — grid-auto-rows uses this.
+     Short panels span 1 row, tall span 2, calendar span 3. */
+  --ph-short:  160px;
+}
+
+/* ── DIM / "LIGHT" THEME ────────────────────────────────── */
+/* Lifted navy with clear elevation between layers.          */
+[data-theme="light"] {
+  --bg:        #19283d;
+  --bg2:       #243652;
+  --bg3:       #2e4268;
+  --bg4:       #3a5280;
+  --border:    #3d5575;
+  --border2:   #4f6d91;
+  --text:      #dce8f5;
+  --muted:     #6a90b4;
+  --muted2:    #96b8d4;
+  --accent:    #00c8f0;
+  --green:     #2dd4a0;
+  --red:       #e05470;
+  --card-glow: 0 0 0 1px var(--border), 0 6px 24px rgba(0,0,0,0.4);
+  --header-bg: rgba(25,40,61,0.97);
+  --nav-bg:    #243652;
+}
+
+/* ── RESET & BASE ───────────────────────────────────────── */
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 14px;
+  font-variant-numeric: normal;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  overflow-x: hidden;
+  transition: background .25s, color .25s;
+}
+@keyframes pulse { 0%,100%{opacity:1;transform:scale(1);} 50%{opacity:.6;transform:scale(.85);} }
+@keyframes spin  { to{transform:rotate(360deg);} }
+
+/* ── HEADER ─────────────────────────────────────────────── */
+header {
+  position: sticky; top: 0; z-index: 100;
+  background: var(--header-bg);
+  backdrop-filter: blur(16px);
+  border-bottom: 1px solid var(--border);
+  padding: 0 20px; height: 56px;
+  display: flex; align-items: center; gap: 16px;
+}
+.logo {
+  font-family: 'Syne', sans-serif; font-size: 17px;
+  font-weight: 800; letter-spacing: -0.5px;
+  display: flex; align-items: center; gap: 9px; flex-shrink: 0;
+}
+.logo-dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--accent); box-shadow: 0 0 8px var(--accent);
+  animation: pulse 2s infinite;
+}
+.header-spacer { flex: 1; }
+
+/* ── HEADER ACTIONS ─────────────────────────────────────── */
+.header-actions { display:flex; gap:8px; align-items:center; flex-shrink:0; }
+
+/* Notion sync pill */
+.sync-pill {
+  display: flex; align-items: center; gap: 6px;
+  padding: 5px 12px; border-radius: 20px;
+  border: 1px solid var(--border); background: var(--bg3);
+  cursor: pointer; transition: all .2s;
+  font-size: 11px; font-weight: 600; color: var(--muted2);
+  white-space: nowrap;
+}
+.sync-pill:hover    { border-color: var(--border2); color: var(--text); }
+.sync-pill.ok       { border-color:rgba(45,212,160,.35); background:rgba(45,212,160,.07); color:var(--green); }
+.sync-pill.error    { border-color:rgba(224,84,112,.35); background:rgba(224,84,112,.07); color:var(--red); }
+.sync-spinner {
+  width:12px; height:12px;
+  border:2px solid rgba(136,153,176,.25); border-top-color:var(--muted2);
+  border-radius:50%; animation:spin .7s linear infinite; flex-shrink:0;
+}
+
+/* Theme toggle */
+.theme-btn {
+  width:30px; height:30px; border-radius:50%;
+  border:1px solid var(--border); background:var(--bg3);
+  cursor:pointer; display:flex; align-items:center; justify-content:center;
+  transition:all .2s; flex-shrink:0;
+}
+.theme-btn:hover { border-color:var(--border2); }
+
+/* Settings */
+.settings-wrap    { position:relative; }
+.settings-menu    {
+  display:none; position:absolute; top:calc(100% + 6px); right:0;
+  background:var(--bg2); border:1px solid var(--border2);
+  border-radius:10px; min-width:230px; z-index:200;
+  box-shadow:0 12px 40px rgba(0,0,0,.4); overflow:hidden;
+}
+.settings-menu.open          { display:block; }
+.settings-workspace          { padding:14px 16px; border-bottom:1px solid var(--border); }
+.settings-workspace-name     { font-size:12px; font-weight:600; color:var(--text); margin-bottom:2px; }
+.settings-workspace-sub      { font-size:10px; color:var(--muted); }
+.settings-menu-item          { padding:11px 16px; font-size:12px; cursor:pointer; color:var(--muted2); transition:all .15s; display:flex; align-items:center; gap:12px; }
+.settings-menu-item:hover    { background:var(--bg3); color:var(--text); }
+.settings-menu-item.danger   { color:var(--red); }
+.settings-menu-item.danger:hover { background:rgba(224,84,112,.06); }
+.settings-divider            { height:1px; background:var(--border); }
+.menu-icon                   { width:14px; height:14px; flex-shrink:0; opacity:.65; }
+.settings-menu-item:hover .menu-icon { opacity:1; }
+
+/* ── NAV BAR ────────────────────────────────────────────── */
+.nav-bar {
+  display: flex; align-items: center;
+  border-bottom: 1px solid var(--border);
+  background: var(--nav-bg);
+  padding: 0 20px; gap: 0;
+  transition: background .25s;
+}
+.nav-tabs { display: flex; }
+.nav-tab {
+  padding: 14px 18px; font-size: 11px; font-weight: 700;
+  letter-spacing: .5px; color: var(--muted); cursor: pointer;
+  border-bottom: 2px solid transparent; transition: all .2s;
+  text-transform: uppercase; white-space: nowrap;
+}
+.nav-tab:hover  { color: var(--text); }
+.nav-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+.nav-right {
+  margin-left: auto;
+  display: flex; align-items: center; gap: 8px; padding: 8px 0;
+}
+
+.pair-filter-wrap { position: relative; }
+.pair-filter-select {
+  appearance: none; -webkit-appearance: none;
+  padding: 4px 24px 4px 10px; font-size: 11px; font-weight: 600;
+  font-family: 'DM Sans', sans-serif;
+  background: var(--bg3); border: 1px solid var(--border);
+  border-radius: 6px; color: var(--text); cursor: pointer;
+  outline: none; transition: border-color .15s; white-space: nowrap;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%235a6a82' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right 8px center;
+}
+.pair-filter-select:focus    { border-color: var(--accent); }
+.pair-filter-select option   { background: var(--bg3); color: var(--text); }
+.pair-filter-select.active   { border-color: var(--accent); color: var(--accent); background-color: rgba(0,212,255,.07); }
+
+.nav-divider { width:1px; height:18px; background:var(--border); flex-shrink:0; }
+
+.date-preset {
+  padding: 4px 9px; border-radius: 4px;
+  font-size: 10px; font-weight: 700; letter-spacing: .5px;
+  cursor: pointer; border: 1px solid var(--border);
+  color: var(--muted); background: transparent;
+  transition: all .15s; white-space: nowrap;
+}
+.date-preset:hover  { border-color: var(--accent); color: var(--accent); }
+.date-preset.active { background: rgba(0,212,255,.1); color: var(--accent); border-color: var(--accent); }
+
+.date-expand-btn {
+  width:28px; height:28px; border-radius:5px;
+  border:1px solid var(--border); background:var(--bg3);
+  cursor:pointer; display:flex; align-items:center; justify-content:center;
+  transition:all .15s; flex-shrink:0;
+}
+.date-expand-btn:hover, .date-expand-btn.active { border-color: var(--accent); }
+.date-expand-btn.active { background: rgba(0,212,255,.08); }
+.date-inputs-panel { display:none; align-items:center; gap:6px; }
+.date-inputs-panel.open { display:flex; }
+.date-inputs-panel input[type=date] {
+  padding:4px 8px; font-size:11px;
+  background:var(--bg3); border:1px solid var(--border);
+  border-radius:5px; color:var(--text);
+  font-family:'DM Sans',sans-serif; width:130px;
+}
+.date-inputs-panel input[type=date]::-webkit-calendar-picker-indicator { filter:invert(0.5); }
+.dr-count { font-size:10px; color:var(--muted); white-space:nowrap; }
+
+/* ── PAGES ──────────────────────────────────────────────── */
+main { position:relative; z-index:1; }
+.page { display:none; padding:24px; }
+.page.active { display:block; }
+.reconnect-banner {
+  display:none; align-items:center; justify-content:space-between;
+  gap:12px; padding:12px 18px;
+  background:rgba(224,84,112,.07); border:1px solid rgba(224,84,112,.2);
+  border-radius:10px; margin:14px 20px 0; flex-wrap:wrap;
+}
+.reconnect-banner.visible { display:flex; }
+.reconnect-banner-text { font-size:12px; color:var(--red); }
+
+/* ── CARDS ──────────────────────────────────────────────── */
+.card {
+  background:var(--bg2); border:1px solid var(--border);
+  border-radius:12px; box-shadow:var(--card-glow);
+  transition:background .25s, border-color .25s;
+  height: 100%;
+}
+.card-header {
+  padding:14px 18px; border-bottom:1px solid var(--border);
+  display:flex; align-items:center; justify-content:space-between;
+}
+.card-title { font-size:10px; font-weight:700; letter-spacing:1.2px; text-transform:uppercase; color:var(--muted2); }
+.card-body  { padding:18px; }
+
+/* ── STAT TILES ─────────────────────────────────────────── */
+.stat-grid  { display:grid; grid-template-columns:repeat(auto-fill,minmax(170px,1fr)); gap:12px; margin-bottom:20px; }
+.stat-card  { background:var(--bg3); border:1px solid var(--border); border-radius:10px; padding:16px 18px; transition:border-color .2s, background .2s; }
+.stat-card:hover { border-color:var(--border2); }
+.stat-label { font-size:10px; font-weight:600; letter-spacing:1px; text-transform:uppercase; color:var(--muted); margin-bottom:10px; }
+.stat-value { font-family:'DM Sans',sans-serif; font-size:22px; font-weight:600; line-height:1; color:var(--text); letter-spacing:-0.5px; font-variant-numeric:tabular-nums; }
+.stat-value.green { color:var(--green); }
+.stat-value.red   { color:var(--red); }
+
+/* ── CHART WRAPS ────────────────────────────────────────── */
+/* Chart height fills panel body. Panel body height is set by
+   the panel-wrapper height via CSS grid rows.               */
+.chart-wrap { position:relative; height:100%; min-height:120px; }
+
+/* ── PANELS CSS GRID ────────────────────────────────────── */
+/*
+   Two-column grid. Each implicit row = --ph-short (160px).
+   Panels use grid-row: span N to claim height:
+
+   Short panels  → span 1  = 160px
+   Tall panels   → span 2  = 160 + 12 + 160 = 332px
+   Calendar      → span 3, col span 2 = 160+12+160+12+160 = 504px
+
+   Two short half-width panels stacked = exactly one tall panel ✓
+*/
+.panels-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-auto-rows: var(--ph-short);
+  gap: 12px;
+}
+
+/* Width classes */
+.pw-half { grid-column: span 1; }
+.pw-full { grid-column: span 2; }
+
+/* Height via row spans — no fixed height on the wrapper */
+.ph-short    { grid-row: span 1; }
+.ph-tall     { grid-row: span 2; }
+.ph-calendar { grid-row: span 3; grid-column: span 2; }
+
+/* Card fills wrapper cell so chart inside can use height:100% */
+.panel-wrapper > .card { height: 100%; display: flex; flex-direction: column; }
+.panel-wrapper > .card > .card-body { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.panel-wrapper > .card > .card-body > .chart-wrap { flex: 1; min-height: 0; }
+
+/* Panel drag states */
+.panel-wrapper            { transition:opacity .15s; }
+.panel-wrapper[draggable=true] { cursor:grab; }
+.panel-wrapper.drag-source { opacity:.3; outline:1px dashed var(--accent); border-radius:12px; }
+.panel-wrapper.drag-over   { outline:1px solid var(--accent); border-radius:12px; }
+
+/* ── PANEL CUSTOMISE BARS ───────────────────────────────── */
+.customise-bar, .panel-customise-bar {
+  display:none; align-items:flex-start; justify-content:space-between;
+  padding:10px 14px;
+  background:rgba(0,212,255,.04); border:1px solid rgba(0,212,255,.14);
+  border-radius:10px; margin-bottom:14px; gap:10px; flex-wrap:wrap;
+}
+.customise-bar.visible, .panel-customise-bar.visible { display:flex; }
+.tile-library, .panel-pill-row { display:flex; gap:7px; flex-wrap:wrap; flex:1; }
+.tile-pill, .panel-pill {
+  padding:5px 11px; border-radius:20px; font-size:11px; font-weight:600;
+  cursor:pointer; border:1px solid var(--border);
+  color:var(--muted2); background:var(--bg3);
+  transition:all .15s; user-select:none;
+}
+.tile-pill.active, .panel-pill.active {
+  border-color:var(--accent); color:var(--accent);
+  background:rgba(0,212,255,.07);
+}
+.stat-card[draggable=true] { cursor:grab; }
+.tab-action-row { display:flex; align-items:center; justify-content:flex-end; margin-bottom:10px; }
+
+/* ── PANEL SIZE BUTTONS ─────────────────────────────────── */
+.panel-size-btns         { display:none; align-items:center; gap:3px; }
+.panel-size-btns.visible { display:flex; }
+.psz-btn {
+  width:22px; height:18px; border-radius:3px;
+  border:1px solid var(--border); background:var(--bg3);
+  cursor:pointer; display:flex; align-items:center; justify-content:center;
+  transition:all .15s; padding:0;
+}
+.psz-btn:hover  { border-color:var(--accent); }
+.psz-btn.active { border-color:var(--accent); background:rgba(0,212,255,.1); }
+
+/* ── TABLE / DATABASE ───────────────────────────────────── */
+.trade-table-wrap { overflow-x:auto; }
+table { width:100%; border-collapse:collapse; font-size:13px; }
+thead tr { border-bottom:1px solid var(--border2); }
+th { padding:10px 14px; text-align:left; font-size:10px; letter-spacing:1px; text-transform:uppercase; color:var(--muted); font-weight:500; }
+td { padding:11px 14px; border-bottom:1px solid var(--border); vertical-align:middle; }
+tr:last-child td { border-bottom:none; }
+tr:hover td { background:rgba(255,255,255,.015); }
+.filter-row { display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-bottom:14px; }
+.filter-row select,
+.filter-row input[type=text],
+.filter-row input[type=date] {
+  padding:7px 11px; font-size:12px; font-family:'DM Sans',sans-serif;
+  background:var(--bg3); color:var(--text);
+  border:1px solid var(--border); border-radius:7px;
+  outline:none; transition:border-color .15s; width:auto;
+}
+.filter-row select {
+  appearance:none; -webkit-appearance:none; padding-right:26px; cursor:pointer;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%235a6a82' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat:no-repeat; background-position:right 9px center;
+}
+.filter-row select:focus, .filter-row input:focus { border-color:var(--accent); box-shadow:0 0 0 3px rgba(0,212,255,.07); }
+.filter-row select option { background:var(--bg3); color:var(--text); }
+.filter-row input[type=text]::placeholder { color:var(--muted); }
+
+/* ── BADGES ─────────────────────────────────────────────── */
+.badge      { display:inline-block; padding:3px 8px; border-radius:4px; font-size:10px; font-weight:600; letter-spacing:.5px; }
+.badge-long  { background:rgba(45,212,160,.08); color:var(--green); border:1px solid rgba(45,212,160,.2); }
+.badge-short { background:rgba(224,84,112,.08); color:var(--red);   border:1px solid rgba(224,84,112,.2); }
+.badge-win   { background:rgba(45,212,160,.08); color:var(--green); }
+.badge-loss  { background:rgba(224,84,112,.08); color:var(--red);   }
+.badge-be    { background:rgba(90,106,130,.15); color:var(--muted2); }
+.pair-chip   { display:inline-block; padding:3px 8px; border-radius:4px; font-size:10px; font-weight:600; background:rgba(0,212,255,.07); color:var(--accent); border:1px solid rgba(0,212,255,.18); }
+
+/* ── BUTTONS ────────────────────────────────────────────── */
+.btn        { padding:8px 16px; border-radius:7px; font-family:'DM Sans',sans-serif; font-size:12px; font-weight:600; letter-spacing:.3px; cursor:pointer; border:none; transition:all .15s; }
+.btn-primary{ background:var(--accent); color:#080c12; box-shadow:0 0 14px rgba(0,212,255,.2); }
+.btn-primary:hover { filter:brightness(1.1); }
+.btn-ghost  { background:transparent; color:var(--muted2); border:1px solid var(--border); }
+.btn-ghost:hover { border-color:var(--border2); color:var(--text); }
+.btn-danger { background:rgba(224,84,112,.08); color:var(--red); border:1px solid rgba(224,84,112,.2); }
+.btn-danger:hover { background:rgba(224,84,112,.15); }
+.btn-sm     { padding:5px 11px; font-size:11px; }
+
+/* ── ANALYTICS SELECTS ──────────────────────────────────── */
+.analytics-select {
+  padding:5px 26px 5px 10px; font-size:11px; font-family:'DM Sans',sans-serif;
+  background:var(--bg3); border:1px solid var(--border); border-radius:6px;
+  color:var(--text); width:auto; outline:none;
+  appearance:none; -webkit-appearance:none;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%235a6a82' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat:no-repeat; background-position:right 8px center;
+}
+.analytics-select:focus { border-color:var(--accent); }
+.analytics-select option { background:var(--bg3); }
+
+/* ── PAIR BARS (analytics) ──────────────────────────────── */
+.pair-bar-row   { display:flex; flex-direction:column; gap:10px; overflow-y:auto; height:100%; }
+.pair-bar-item  { display:flex; flex-direction:column; gap:5px; flex-shrink:0; }
+.pair-bar-label { display:flex; justify-content:space-between; font-size:11px; color:var(--muted2); }
+.pair-bar-track { height:5px; background:var(--bg4); border-radius:3px; overflow:hidden; }
+.pair-bar-fill  { height:100%; border-radius:3px; transition:width .6s ease; }
+
+/* ── DAY GRID ───────────────────────────────────────────── */
+.day-grid { display:grid; grid-template-columns:repeat(7,1fr); gap:6px; height:100%; align-content:center; }
+.day-cell { text-align:center; }
+.day-name { font-size:9px; color:var(--muted); margin-bottom:4px; }
+.day-val  { padding:8px 4px; border-radius:6px; font-size:11px; font-weight:600; background:var(--bg4); color:var(--muted2); }
+.day-val.pos { background:rgba(45,212,160,.1); color:var(--green); }
+.day-val.neg { background:rgba(224,84,112,.1); color:var(--red);   }
+
+/* ── LEGEND ─────────────────────────────────────────────── */
+.legend      { display:flex; gap:12px; flex-wrap:wrap; }
+.legend-item { display:flex; align-items:center; gap:5px; font-size:11px; color:var(--muted2); }
+.legend-dot  { width:7px; height:7px; border-radius:50%; }
+
+/* ── HEATMAP ────────────────────────────────────────────── */
+.heatmap-grid      { display:grid; gap:3px; }
+.heatmap-cell      { border-radius:3px; display:flex; align-items:center; justify-content:center; font-size:9px; font-weight:600; min-height:26px; cursor:default; transition:opacity .15s; }
+.heatmap-cell:hover{ opacity:.75; }
+.heatmap-label     { font-size:10px; color:var(--muted); text-align:right; padding-right:6px; display:flex; align-items:center; justify-content:flex-end; min-height:26px; }
+.heatmap-col-header{ font-size:9px; color:var(--muted); text-align:center; letter-spacing:.5px; padding-bottom:3px; }
+
+/* ── R VALUES ───────────────────────────────────────────── */
+.r-pos  { color:var(--green); font-weight:600; font-variant-numeric:tabular-nums; }
+.r-neg  { color:var(--red);   font-weight:600; font-variant-numeric:tabular-nums; }
+.r-zero { color:var(--muted2); font-variant-numeric:tabular-nums; }
+
+/* ── EMPTY STATE ────────────────────────────────────────── */
+.empty-state  { text-align:center; padding:48px 24px; }
+.empty-icon   { font-size:32px; margin-bottom:12px; opacity:.2; }
+.empty-title  { font-family:'Syne',sans-serif; font-size:17px; font-weight:700; color:var(--muted2); margin-bottom:8px; }
+.empty-sub    { font-size:12px; color:var(--muted); line-height:1.7; }
+
+/* ── SCROLLBAR ──────────────────────────────────────────── */
+::-webkit-scrollbar       { width:5px; height:5px; }
+::-webkit-scrollbar-track { background:var(--bg); }
+::-webkit-scrollbar-thumb { background:var(--border2); border-radius:3px; }
+
+/* ── TOAST ──────────────────────────────────────────────── */
+.toast {
+  position:fixed; bottom:22px; right:22px; z-index:3000;
+  background:var(--bg2); border:1px solid var(--border2);
+  border-radius:10px; padding:13px 18px; font-size:13px; color:var(--text);
+  box-shadow:0 8px 32px rgba(0,0,0,.35);
+  transform:translateY(80px); opacity:0; transition:all .3s; pointer-events:none;
+}
+.toast.show    { transform:none; opacity:1; }
+.toast.success { border-left:3px solid var(--green); }
+.toast.error   { border-left:3px solid var(--red); }
+
+/* ── LOADING OVERLAY ────────────────────────────────────── */
+.loading-overlay {
+  position:fixed; inset:0; z-index:9999; background:var(--bg);
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:16px;
+}
+.loading-spinner {
+  width:34px; height:34px;
+  border:3px solid var(--border2); border-top-color:var(--accent);
+  border-radius:50%; animation:spin .8s linear infinite;
+}
+
+/* ── MONTHLY R GRID — short panel body fills height ─────── */
+.annual-r-grid-wrap { height:100%; display:flex; align-items:center; }
+#annual-r-grid { display:grid; grid-template-columns:repeat(12,1fr); gap:6px; width:100%; }
+
+/* ── ADV METRICS — scrollable inside tall panel ─────────── */
+#adv-metrics { overflow-y:auto; height:100%; }
+
+/* ── HEATMAP SCROLL ─────────────────────────────────────── */
+.heatmap-scroll { overflow-x:auto; height:100%; display:flex; flex-direction:column; gap:8px; }
+
+@media(max-width:900px) {
+  .nav-right  { gap:4px; }
+  .date-preset{ padding:3px 7px; font-size:9px; }
+  .panels-grid { grid-template-columns: 1fr; }
+  .pw-half, .pw-full, .ph-calendar { grid-column: span 1; }
+}
+</style>
+</head>
+<body>
+
+<div class="loading-overlay" id="loading-overlay">
+  <div class="loading-spinner"></div>
+  <div style="font-size:11px;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase">Loading your data</div>
+</div>
+
+<!-- ═══ HEADER ════════════════════════════════════════════ -->
+<header>
+  <div class="logo">
+    <div class="logo-dot"></div>
+    EDGE<span style="color:var(--accent)">TRACK</span>
+  </div>
+
+  <div class="header-spacer"></div>
+
+  <div class="header-actions">
+    <div class="sync-pill" id="sync-pill" onclick="resyncNotion()" title="Sync trades from Notion">
+      <svg width="12" height="12" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M1 7a6 6 0 1 0 6-6 6 6 0 0 0-4.2 1.7"/><polyline points="1,1 1,4.5 4.5,4.5"/>
+      </svg>
+      <span id="sync-label">Sync</span>
+    </div>
+
+    <button class="theme-btn" id="theme-btn" onclick="toggleTheme()" title="Toggle dim/dark mode">
+      <svg id="theme-icon" width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 9.5A6 6 0 1 1 4.5 2a4.5 4.5 0 0 0 7.5 7.5z"/>
+      </svg>
+    </button>
+
+    <div class="settings-wrap">
+      <button class="btn btn-ghost btn-sm" onclick="toggleMenu('settings-menu',event)">Settings</button>
+      <div class="settings-menu" id="settings-menu">
+        <div class="settings-workspace">
+          <div class="settings-workspace-name" id="settings-workspace-name">—</div>
+          <div class="settings-workspace-sub"  id="settings-workspace-sub">Connected workspace</div>
+        </div>
+        <div class="settings-menu-item" onclick="goToRemap()">
+          <svg class="menu-icon" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="1" y="1" width="5" height="5" rx="1"/><rect x="8" y="1" width="5" height="5" rx="1"/>
+            <rect x="1" y="8" width="5" height="5" rx="1"/><rect x="8" y="8" width="5" height="5" rx="1"/>
+          </svg>
+          <div>
+            <div style="font-weight:600;color:var(--text);font-size:12px">Edit Column Mapping</div>
+            <div style="font-size:10px;color:var(--muted);margin-top:1px">Update which Notion columns are read</div>
+          </div>
+        </div>
+        <div class="settings-divider"></div>
+        <div class="settings-menu-item" onclick="disconnect()">
+          <svg class="menu-icon" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M5 7h7M9 4l3 3-3 3"/><path d="M5 2H2a1 1 0 00-1 1v8a1 1 0 001 1h3"/>
+          </svg>
+          <div>
+            <div style="font-weight:600;color:var(--text);font-size:12px">Disconnect</div>
+            <div style="font-size:10px;color:var(--muted);margin-top:1px">Sign out — data stays saved</div>
+          </div>
+        </div>
+        <div class="settings-divider"></div>
+        <div class="settings-menu-item danger" onclick="confirmDeleteAccount()">
+          <svg class="menu-icon" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="2,4 12,4"/><path d="M5 4V2h4v2"/><path d="M3 4l1 8h6l1-8"/>
+          </svg>
+          <div>
+            <div style="font-weight:600;font-size:12px">Delete Account</div>
+            <div style="font-size:10px;color:var(--muted);margin-top:1px">Permanently erase all your data</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<div class="reconnect-banner" id="reconnect-banner">
+  <span class="reconnect-banner-text">Your session has expired. Please reconnect to continue.</span>
+  <button class="btn btn-danger btn-sm" onclick="window.location.href='onboarding.html'">Reconnect</button>
+</div>
+
+<!-- ═══ NAV BAR ══════════════════════════════════════════ -->
+<div class="nav-bar">
+  <div class="nav-tabs">
+    <div class="nav-tab active" onclick="switchTab('overview')">Overview</div>
+    <div class="nav-tab" onclick="switchTab('analytics')">Analytics</div>
+    <div class="nav-tab" onclick="switchTab('database')">Trade Database</div>
+  </div>
+
+  <div class="nav-right">
+    <select class="pair-filter-select" id="nav-pair-filter" onchange="onNavPairChange()">
+      <option value="">All Pairs</option>
+    </select>
+
+    <div class="nav-divider"></div>
+
+    <span class="dr-count" id="dr-count"></span>
+
+    <button class="date-preset active" id="preset-all" onclick="setPreset('all')">All</button>
+    <button class="date-preset"        id="preset-7d"  onclick="setPreset('7d')">7D</button>
+    <button class="date-preset"        id="preset-1m"  onclick="setPreset('1m')">1M</button>
+    <button class="date-preset"        id="preset-3m"  onclick="setPreset('3m')">3M</button>
+    <button class="date-preset"        id="preset-ytd" onclick="setPreset('ytd')">YTD</button>
+
+    <button class="date-expand-btn" id="date-expand-btn" onclick="toggleDateInputs()" title="Custom date range">
+      <svg width="12" height="12" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="1" y="2" width="12" height="11" rx="1.5"/><path d="M1 6h12M5 1v2M9 1v2"/>
+      </svg>
+    </button>
+    <div class="date-inputs-panel" id="date-inputs-panel">
+      <input type="date" id="dr-from" onchange="onDateRangeChange()">
+      <span style="color:var(--muted);font-size:11px">&#x2192;</span>
+      <input type="date" id="dr-to" onchange="onDateRangeChange()">
+    </div>
+  </div>
+</div>
+
+<!-- ═══ MAIN ══════════════════════════════════════════════ -->
+<main>
+
+<!-- OVERVIEW ──────────────────────────────────────────── -->
+<div class="page active" id="page-overview">
+  <div class="customise-bar" id="customise-bar">
+    <div style="display:flex;flex-direction:column;gap:5px;flex:1">
+      <div style="font-size:10px;letter-spacing:1px;text-transform:uppercase;color:var(--accent);font-weight:600">Customise Tiles &#x2014; click to toggle, drag to reorder</div>
+      <div class="tile-library" id="tile-library"></div>
+    </div>
+    <button class="btn btn-primary btn-sm" onclick="closeCustomise()">Done</button>
+  </div>
+  <div style="display:flex;align-items:center;justify-content:flex-end;margin-bottom:10px">
+    <button class="btn btn-ghost btn-sm" onclick="openCustomise()" style="font-size:10px;letter-spacing:.5px">Customise Tiles</button>
+  </div>
+  <div class="stat-grid" id="ov-stats"></div>
+
+  <div class="panel-customise-bar" id="ov-panel-customise-bar">
+    <div style="display:flex;flex-direction:column;gap:5px;flex:1">
+      <div style="font-size:10px;letter-spacing:1px;text-transform:uppercase;color:var(--accent);font-weight:600">Customise Panels &#x2014; toggle &#x00b7; drag to reorder &#x00b7; resize</div>
+      <div class="panel-pill-row" id="ov-panel-pills"></div>
+    </div>
+    <button class="btn btn-primary btn-sm" onclick="closeOvPanels()">Done</button>
+  </div>
+  <div class="tab-action-row">
+    <button class="btn btn-ghost btn-sm" onclick="openOvPanels()" style="font-size:10px;letter-spacing:.5px">Customise Panels</button>
+  </div>
+  <div class="panels-grid" id="ov-panels-container"></div>
+</div>
+
+<!-- ANALYTICS ─────────────────────────────────────────── -->
+<div class="page" id="page-analytics">
+  <div class="panel-customise-bar" id="an-panel-customise-bar">
+    <div style="display:flex;flex-direction:column;gap:5px;flex:1">
+      <div style="font-size:10px;letter-spacing:1px;text-transform:uppercase;color:var(--accent);font-weight:600">Customise Panels &#x2014; toggle &#x00b7; drag to reorder &#x00b7; resize</div>
+      <div class="panel-pill-row" id="an-panel-pills"></div>
+    </div>
+    <button class="btn btn-primary btn-sm" onclick="closeAnPanels()">Done</button>
+  </div>
+  <div class="tab-action-row">
+    <button class="btn btn-ghost btn-sm" onclick="openAnPanels()" style="font-size:10px;letter-spacing:.5px">Customise Panels</button>
+  </div>
+  <div class="panels-grid" id="an-panels-container"></div>
+</div>
+
+<!-- TRADE DATABASE ────────────────────────────────────── -->
+<div class="page" id="page-database">
+  <div class="filter-row">
+    <select id="f-fp" onchange="renderDatabase()"><option value="">All Pairs</option></select>
+    <select id="f-fd" onchange="renderDatabase()"><option value="">All Directions</option><option>Long</option><option>Short</option></select>
+    <select id="f-fs" onchange="renderDatabase()"><option value="">All Sessions</option></select>
+    <select id="f-fr" onchange="renderDatabase()"><option value="">All Results</option><option>Win</option><option>Loss</option><option>Breakeven</option></select>
+    <input type="text"  id="f-fn"   placeholder="Search notes&#x2026;" onkeyup="renderDatabase()" style="width:170px">
+    <input type="date"  id="f-from" onchange="renderDatabase()" title="From date">
+    <input type="date"  id="f-to"   onchange="renderDatabase()" title="To date">
+  </div>
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">Trade Database</span>
+      <span id="db-count" style="font-size:11px;color:var(--muted)"></span>
+    </div>
+    <div class="card-body" style="padding:0">
+      <div class="trade-table-wrap">
+        <table>
+          <thead><tr><th>#</th><th>Date</th><th>Time</th><th>Pair</th><th>Direction</th><th>Session</th><th>Result</th><th>R</th><th>Notes</th></tr></thead>
+          <tbody id="db-body"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+</main>
+<div class="toast" id="toast"></div>
+<script>
+// ═══════════════════════════════════════════════════════════════
+// CONSTANTS & AUTH
+// ═══════════════════════════════════════════════════════════════
+const WORKER = 'https://edgetrack-api.harry5282.workers.dev';
+const TOKEN_KEY = 'et_session_token';
+
+function getToken()  { try { return localStorage.getItem(TOKEN_KEY); } catch(e) { return null; } }
+function clearToken(){ try { localStorage.removeItem(TOKEN_KEY);    } catch(e) {} }
+function authH(extra) {
+  const t = getToken();
+  const b = { 'Content-Type': 'application/json' };
+  if (t) b['Authorization'] = `Bearer ${t}`;
+  return Object.assign(b, extra || {});
+}
+function fmtR(r, d=2) {
+  const v = parseFloat(r) || 0, a = Math.abs(v).toFixed(d);
+  return v > 0 ? a + 'R' : v < 0 ? '(' + a + 'R)' : a + 'R';
+}
+function fmtTrades(n) { return n === 1 ? '1 Trade' : n + ' Trades'; }
+
+let trades = [], calY, calM, activePairFilter = '', dateFrom = '', dateTo = '';
+const CH = {};
+
+// ═══════════════════════════════════════════════════════════════
+// PANEL HEIGHT & WIDTH METADATA
+// ═══════════════════════════════════════════════════════════════
+// height: 'short' | 'tall' | 'calendar'
+// short panels: monthlyR (grid), pairBars, dayPerf
+// tall panels: everything else
+// calendar: isolated, always full-width, fixed height, no size buttons
+const PANEL_HEIGHTS = {
+  equity:     'tall',
+  wl:         'tall',
+  monthlyR:   'short',
+  calendar:   'calendar',
+  session:    'tall',
+  pairBars:   'short',
+  wrPair:     'tall',
+  ls:         'tall',
+  heatmap:    'tall',
+  dayPerf:    'short',
+  monthlyBar: 'tall',
+  advMetrics: 'tall',
+};
+
+// Width options only available for non-calendar panels
+// Stored as 'half' | 'full' (default 'full')
+
+// ═══════════════════════════════════════════════════════════════
+// PREFS — server-linked, localStorage fallback
+// ═══════════════════════════════════════════════════════════════
+let uiPrefs = {}, prefsSaveTimer = null;
+
+async function loadPrefs() {
+  try {
+    const r = await fetch(`${WORKER}/user/prefs`, { headers: authH() });
+    if (r.ok) { const d = await r.json(); uiPrefs = d.prefs || {}; return; }
+  } catch(e) {}
+  ['theme','tileLayout','ovPanelLayout','anPanelLayout','ovPanelSizes','anPanelSizes'].forEach(k => {
+    try { const v = localStorage.getItem('et_' + k); if (v) uiPrefs[k] = JSON.parse(v); } catch(e) {}
+  });
+}
+
+function savePrefs() {
+  clearTimeout(prefsSaveTimer);
+  prefsSaveTimer = setTimeout(async () => {
+    try {
+      await fetch(`${WORKER}/user/prefs`, { method: 'POST', headers: authH(), body: JSON.stringify({ prefs: uiPrefs }) });
+    } catch(e) {
+      Object.entries(uiPrefs).forEach(([k, v]) => {
+        try { localStorage.setItem('et_' + k, JSON.stringify(v)); } catch(e) {}
+      });
+    }
+  }, 800);
+}
+
+function setPref(k, v) { uiPrefs[k] = v; savePrefs(); }
+
+// ═══════════════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════════════
+window.onload = async () => {
+  const token = getToken();
+  if (!token) { window.location.href = 'onboarding.html'; return; }
+
+  let sd;
+  try {
+    const r = await fetch(`${WORKER}/session`, { credentials: 'include', headers: { 'Authorization': `Bearer ${token}` } });
+    sd = await r.json();
+  } catch(e) { window.location.href = 'onboarding.html'; return; }
+
+  if (!sd.connected)  { clearToken(); window.location.href = 'onboarding.html'; return; }
+  if (!sd.hasMapping) { window.location.href = 'onboarding.html'; return; }
+
+  document.getElementById('settings-workspace-name').textContent = sd.workspaceName || 'My Workspace';
+  document.getElementById('settings-workspace-sub').textContent  = sd.databaseName  || 'Trade Journal';
+
+  await loadPrefs();
+  applyTheme(uiPrefs.theme || 'dark');
+  await fetchTrades();
+  document.getElementById('loading-overlay').style.display = 'none';
+  const now = new Date(); calY = now.getFullYear(); calM = now.getMonth();
+  buildFilters();
+  renderAll();
+};
+
+// ═══════════════════════════════════════════════════════════════
+// THEME
+// ═══════════════════════════════════════════════════════════════
+function applyTheme(t) {
+  document.documentElement.setAttribute('data-theme', t);
+  const ic = document.getElementById('theme-icon');
+  if (t === 'light') {
+    ic.innerHTML = '<circle cx="7" cy="7" r="3"/><line x1="7" y1="1" x2="7" y2="2.5"/><line x1="7" y1="11.5" x2="7" y2="13"/><line x1="1" y1="7" x2="2.5" y2="7"/><line x1="11.5" y1="7" x2="13" y2="7"/><line x1="2.9" y1="2.9" x2="4" y2="4"/><line x1="10" y1="10" x2="11.1" y2="11.1"/><line x1="11.1" y1="2.9" x2="10" y2="4"/><line x1="4" y1="10" x2="2.9" y2="11.1"/>';
+    ic.setAttribute('stroke-width', '1.8');
+  } else {
+    ic.innerHTML = '<path d="M12 9.5A6 6 0 1 1 4.5 2a4.5 4.5 0 0 0 7.5 7.5z"/>';
+    ic.setAttribute('stroke-width', '1.5');
+  }
+}
+function toggleTheme() {
+  const cur  = document.documentElement.getAttribute('data-theme') || 'dark';
+  const next = cur === 'dark' ? 'light' : 'dark';
+  applyTheme(next);
+  setPref('theme', next);
+  reRenderActiveTab();
+}
+function reRenderActiveTab() {
+  if (document.getElementById('page-overview').classList.contains('active'))  renderOvPanels();
+  if (document.getElementById('page-analytics').classList.contains('active')) renderAnalytics();
+}
+
+// ═══════════════════════════════════════════════════════════════
+// SYNC PILL
+// ═══════════════════════════════════════════════════════════════
+function setSyncState(s) {
+  const pill = document.getElementById('sync-pill');
+  const syncSvg = '<svg width="12" height="12" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M1 7a6 6 0 1 0 6-6 6 6 0 0 0-4.2 1.7"/><polyline points="1,1 1,4.5 4.5,4.5"/></svg>';
+  pill.className = 'sync-pill';
+  if (s === 'syncing') {
+    pill.innerHTML = `<div class="sync-spinner"></div><span>Syncing\u2026</span>`;
+  } else if (s === 'ok') {
+    pill.classList.add('ok');
+    pill.innerHTML = `${syncSvg}<span>Synced</span>`;
+    pill.title = 'Synced \u2014 click to refresh';
+  } else {
+    pill.classList.add('error');
+    pill.innerHTML = `${syncSvg}<span>Sync failed</span>`;
+    pill.title = 'Sync failed \u2014 click to retry';
+  }
+}
+
+async function fetchTrades() {
+  setSyncState('syncing');
+  try {
+    const r = await fetch(`${WORKER}/notion/query`, { method: 'POST', credentials: 'include', headers: authH(), body: JSON.stringify({}) });
+    if (r.status === 401) { showReconnectBanner(); setSyncState('error'); trades = []; return; }
+    if (!r.ok) throw new Error();
+    const d = await r.json();
+    if (!d.results) throw new Error();
+    trades = d.results;
+    setSyncState('ok');
+  } catch(e) { setSyncState('error'); trades = []; }
+}
+
+async function resyncNotion() {
+  document.getElementById('loading-overlay').style.display = 'flex';
+  await fetchTrades();
+  buildFilters();
+  document.getElementById('loading-overlay').style.display = 'none';
+  renderAll();
+  if (document.getElementById('page-analytics').classList.contains('active')) renderAnalytics();
+  toast('Synced from Notion.', 'success');
+}
+
+function showReconnectBanner() { document.getElementById('reconnect-banner')?.classList.add('visible'); }
+
+// ═══════════════════════════════════════════════════════════════
+// FILTERS & PAIR FILTER
+// ═══════════════════════════════════════════════════════════════
+function buildFilters() {
+  const pairs    = [...new Set(trades.map(t => t.pair).filter(v => v && v !== '—'))].sort();
+  const sessions = [...new Set(trades.map(t => t.session).filter(v => v && v !== '—'))].sort();
+
+  const navPF = document.getElementById('nav-pair-filter');
+  navPF.innerHTML = '<option value="">All Pairs</option>' + pairs.map(p => `<option value="${p}">${p}</option>`).join('');
+  navPF.value = activePairFilter;
+  navPF.classList.toggle('active', !!activePairFilter);
+
+  document.getElementById('f-fp').innerHTML = '<option value="">All Pairs</option>'    + pairs.map(p => `<option value="${p}">${p}</option>`).join('');
+  document.getElementById('f-fs').innerHTML = '<option value="">All Sessions</option>' + sessions.map(s => `<option value="${s}">${s}</option>`).join('');
+}
+
+function onNavPairChange() {
+  activePairFilter = document.getElementById('nav-pair-filter').value;
+  document.getElementById('nav-pair-filter').classList.toggle('active', !!activePairFilter);
+  renderAll();
+  if (document.getElementById('page-analytics').classList.contains('active')) renderAnalytics();
+}
+
+function getFiltered() {
+  let ts = activePairFilter ? trades.filter(t => t.pair === activePairFilter) : trades;
+  if (dateFrom) ts = ts.filter(t => t.date >= dateFrom);
+  if (dateTo)   ts = ts.filter(t => t.date <= dateTo);
+  const el = document.getElementById('dr-count');
+  if (el) el.textContent = (dateFrom || dateTo) ? ts.length + ' trades' : '';
+  return ts;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// DATE RANGE
+// ═══════════════════════════════════════════════════════════════
+function setPreset(p) {
+  const now = new Date(), toStr = now.toISOString().slice(0, 10); let fromStr = '';
+  if (p === '7d')  { const d = new Date(now); d.setDate(d.getDate() - 6); fromStr = d.toISOString().slice(0, 10); }
+  if (p === '1m')  { const d = new Date(now); d.setMonth(d.getMonth() - 1); fromStr = d.toISOString().slice(0, 10); }
+  if (p === '3m')  { const d = new Date(now); d.setMonth(d.getMonth() - 3); fromStr = d.toISOString().slice(0, 10); }
+  if (p === 'ytd') { fromStr = now.getFullYear() + '-01-01'; }
+  dateFrom = fromStr; dateTo = p === 'all' ? '' : toStr;
+  document.getElementById('dr-from').value = dateFrom;
+  document.getElementById('dr-to').value   = dateTo;
+  document.querySelectorAll('.date-preset').forEach(b => b.classList.remove('active'));
+  document.getElementById('preset-' + p)?.classList.add('active');
+  renderAll();
+  if (document.getElementById('page-analytics').classList.contains('active')) renderAnalytics();
+}
+function onDateRangeChange() {
+  dateFrom = document.getElementById('dr-from').value;
+  dateTo   = document.getElementById('dr-to').value;
+  document.querySelectorAll('.date-preset').forEach(b => b.classList.remove('active'));
+  if (!dateFrom && !dateTo) document.getElementById('preset-all').classList.add('active');
+  renderAll();
+  if (document.getElementById('page-analytics').classList.contains('active')) renderAnalytics();
+}
+function toggleDateInputs() {
+  const panel = document.getElementById('date-inputs-panel');
+  const btn   = document.getElementById('date-expand-btn');
+  btn.classList.toggle('active', panel.classList.toggle('open'));
+}
+
+// ═══════════════════════════════════════════════════════════════
+// TAB SWITCHING
+// ═══════════════════════════════════════════════════════════════
+function renderAll() { renderOverview(); renderDatabase(); }
+function switchTab(n) {
+  const names = ['overview', 'analytics', 'database'];
+  document.querySelectorAll('.nav-tab').forEach((t, i) => t.classList.toggle('active', names[i] === n));
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('page-' + n).classList.add('active');
+  if (n === 'analytics') renderAnalytics();
+}
+
+// ═══════════════════════════════════════════════════════════════
+// METRICS CALC
+// ═══════════════════════════════════════════════════════════════
+function calcM(ts) {
+  if (!ts.length) return null;
+  const w = ts.filter(t => t.result === 'Win'), l = ts.filter(t => t.result === 'Loss'), b = ts.filter(t => t.result === 'Breakeven');
+  const wr = w.length / ts.length * 100, tot = ts.reduce((s, t) => s + (+t.r || 0), 0);
+  const aw = w.length ? w.reduce((s, t) => s + (+t.r || 0), 0) / w.length : 0;
+  const al = l.length ? Math.abs(l.reduce((s, t) => s + (+t.r || 0), 0) / l.length) : 0;
+  const gw = w.reduce((s, t) => s + (+t.r || 0), 0), gl = Math.abs(l.reduce((s, t) => s + (+t.r || 0), 0));
+  const pf = gl > 0 ? gw / gl : gw > 0 ? Infinity : 0;
+  const exp = (wr / 100 * aw) - ((1 - wr / 100) * al);
+  let peak = 0, dd = 0, cum = 0;
+  const sorted = ts.slice().sort((a, b) => new Date(a.date + ' ' + (a.time || '00:00')) - new Date(b.date + ' ' + (b.time || '00:00')));
+  const eq = [0];
+  sorted.forEach(t => { cum += (+t.r || 0); eq.push(+cum.toFixed(3)); if (cum > peak) peak = cum; const d = peak - cum; if (d > dd) dd = d; });
+  let cw = 0, bw = 0, cl = 0, bl = 0;
+  sorted.forEach(t => {
+    if (t.result === 'Win')       { cw++; bw = Math.max(bw, cw); cl = 0; }
+    else if (t.result === 'Loss') { cl++; bl = Math.max(bl, cl); cw = 0; }
+    else { cw = 0; cl = 0; }
+  });
+  return { n: ts.length, w: w.length, l: l.length, b: b.length, wr, tot, aw, al, pf, exp, dd, lw: w.length ? Math.max(...w.map(t => +t.r || 0)) : 0, ll: l.length ? Math.min(...l.map(t => +t.r || 0)) : 0, bw, bl, eq, sorted };
+}
+
+// ═══════════════════════════════════════════════════════════════
+// STAT TILES
+// ═══════════════════════════════════════════════════════════════
+const ALL_TILES = [
+  { id:'totalR',      label:'Total R',           render: m => ({ value: fmtR(m.tot),                         cls: m.tot >= 0 ? 'green' : 'red' }) },
+  { id:'winRate',     label:'Win Rate',           render: m => ({ value: m.wr.toFixed(1) + '%',              cls: '' }) },
+  { id:'pf',          label:'Profit Factor',      render: m => ({ value: isFinite(m.pf) ? m.pf.toFixed(2) : '\u221e', cls: '' }) },
+  { id:'exp',         label:'Expectancy',         render: m => ({ value: fmtR(m.exp),                        cls: m.exp >= 0 ? 'green' : 'red' }) },
+  { id:'avgWin',      label:'Avg Win',            render: m => ({ value: fmtR(m.aw),                         cls: 'green' }) },
+  { id:'avgLoss',     label:'Avg Loss',           render: m => ({ value: fmtR(-m.al),                        cls: 'red' }) },
+  { id:'maxDD',       label:'Max Drawdown',       render: m => ({ value: fmtR(-m.dd),                        cls: 'red' }) },
+  { id:'avgRR',       label:'Avg R/R',            render: m => ({ value: m.al > 0 ? (m.aw / m.al).toFixed(2) : '—', cls: '' }) },
+  { id:'trades',      label:'Total Trades',       render: m => ({ value: m.n,                                cls: '' }) },
+  { id:'bestWin',     label:'Best Win Streak',    render: m => ({ value: m.bw,                               cls: 'green' }) },
+  { id:'worstLoss',   label:'Worst Loss Streak',  render: m => ({ value: m.bl,                               cls: 'red' }) },
+  { id:'largestWin',  label:'Largest Win',        render: m => ({ value: fmtR(m.lw),                         cls: 'green' }) },
+  { id:'largestLoss', label:'Largest Loss',       render: m => ({ value: fmtR(m.ll),                         cls: 'red' }) },
+];
+
+function getTileLayout() { return uiPrefs.tileLayout || ALL_TILES.slice(0, 8).map(t => t.id); }
+function saveTileLayout(ids) { setPref('tileLayout', ids); }
+let dragTileSrc = null;
+function isCustomising() { return document.getElementById('customise-bar').classList.contains('visible'); }
+function openCustomise()  { document.getElementById('customise-bar').classList.add('visible'); renderOverview(); renderTileLibrary(); }
+function closeCustomise() { document.getElementById('customise-bar').classList.remove('visible'); }
+function renderTileLibrary() {
+  const active = getTileLayout();
+  document.getElementById('tile-library').innerHTML = ALL_TILES.map(t =>
+    `<span class="tile-pill ${active.includes(t.id) ? 'active' : ''}" onclick="toggleTile('${t.id}')">${t.label}</span>`
+  ).join('');
+}
+function toggleTile(id) {
+  let ids = getTileLayout();
+  if (ids.includes(id)) { if (ids.length <= 1) return; ids = ids.filter(x => x !== id); }
+  else ids = [...ids, id];
+  saveTileLayout(ids); renderTileLibrary(); renderOverview();
+}
+function renderTiles(m, sg) {
+  const ids = getTileLayout(), cust = isCustomising();
+  sg.innerHTML = ids.map(id => {
+    const tile = ALL_TILES.find(t => t.id === id); if (!tile) return '';
+    const d = tile.render(m);
+    return `<div class="stat-card" data-tile-id="${id}" draggable="${cust}"
+      ondragstart="if(isCustomising())tileDragStart(event)" ondragend="tileDragEnd(event)"
+      ondragover="if(isCustomising())tileDragOver(event)" ondrop="if(isCustomising())tileDragDrop(event)"
+      ondragleave="tileDragLeave(event)">
+      <div class="stat-label">${tile.label}</div>
+      <div class="stat-value ${d.cls || ''}">${d.value}</div>
+    </div>`;
+  }).join('');
+}
+function renderEmptyTiles(sg) {
+  sg.innerHTML = getTileLayout().map(id => {
+    const tile = ALL_TILES.find(t => t.id === id); if (!tile) return '';
+    return `<div class="stat-card"><div class="stat-label">${tile.label}</div><div class="stat-value" style="color:var(--muted2);font-size:20px">—</div></div>`;
+  }).join('');
+}
+function tileDragStart(e) { dragTileSrc = e.currentTarget.dataset.tileId; e.dataTransfer.effectAllowed = 'move'; setTimeout(() => { const el = document.querySelector('[data-tile-id="' + dragTileSrc + '"]'); if (el) { el.style.opacity = '0.3'; el.style.outline = '1px dashed var(--accent)'; } }, 0); }
+function tileDragEnd()    { document.querySelectorAll('.stat-card').forEach(c => { c.style.opacity = '1'; c.style.outline = ''; }); dragTileSrc = null; }
+function tileDragOver(e)  { e.preventDefault(); const card = e.currentTarget; if (card.dataset.tileId === dragTileSrc) return; document.querySelectorAll('.stat-card').forEach(c => { if (c.dataset.tileId !== dragTileSrc) c.style.outline = ''; }); card.style.outline = '1px solid var(--accent)'; }
+function tileDragLeave(e) { e.currentTarget.style.outline = ''; }
+function tileDragDrop(e)  { e.preventDefault(); const tid = e.currentTarget.dataset.tileId; e.currentTarget.style.outline = ''; if (!dragTileSrc || dragTileSrc === tid) return; let ids = getTileLayout(); const from = ids.indexOf(dragTileSrc), to = ids.indexOf(tid); if (from === -1 || to === -1) return; ids.splice(from, 1); ids.splice(to, 0, dragTileSrc); saveTileLayout(ids); renderOverview(); if (isCustomising()) renderTileLibrary(); }
+
+// ═══════════════════════════════════════════════════════════════
+// PANEL SIZE HELPERS (width only — half | full)
+// ═══════════════════════════════════════════════════════════════
+const SIZE_ICONS = [
+  // half: narrow rect
+  '<rect x="3" y="0.5" width="4" height="7" rx="1" stroke="currentColor" stroke-width="1.2"/>',
+  // full: wide rect
+  '<rect x="0.5" y="0.5" width="9" height="7" rx="1" stroke="currentColor" stroke-width="1.2"/>',
+];
+
+function getPanelSize(tab, id) {
+  // Calendar is always full — no stored preference used
+  if (PANEL_HEIGHTS[id] === 'calendar') return 'full';
+  return (uiPrefs[tab + 'PanelSizes'] || {})[id] || 'full';
+}
+function setPanelSize(tab, id, sz) {
+  const s = { ...(uiPrefs[tab + 'PanelSizes'] || {}) };
+  s[id] = sz;
+  setPref(tab + 'PanelSizes', s);
+}
+
+function sizeBtns(tab, id, cur) {
+  // Calendar panels get no size buttons
+  if (PANEL_HEIGHTS[id] === 'calendar') return '';
+  return ['half', 'full'].map((sz, i) =>
+    `<button class="psz-btn${cur === sz ? ' active' : ''}" title="${sz}" onclick="changePanelSize('${tab}','${id}','${sz}');event.stopPropagation()">
+      <svg width="10" height="8" viewBox="0 0 10 8" fill="none">${SIZE_ICONS[i]}</svg>
+    </button>`
+  ).join('');
+}
+
+function changePanelSize(tab, id, sz) {
+  // Save preference then fully re-render so grid reflows correctly.
+  // Live DOM class swapping causes layout bugs with CSS grid row spans.
+  setPanelSize(tab, id, sz);
+  if (tab === 'ov') renderOvPanels();
+  if (tab === 'an') renderAnalytics();
+}
+
+// ═══════════════════════════════════════════════════════════════
+// PANEL BUILDER HELPER
+// ═══════════════════════════════════════════════════════════════
+function panelShell(tab, id, cust, title, bodyHtml, extraHeaderHtml) {
+  const sz     = getPanelSize(tab, id);
+  const ph     = PANEL_HEIGHTS[id] || 'tall';
+  const drags  = cust
+    ? `draggable="true" ondragstart="${tab}DragStart(event)" ondragend="${tab}DragEnd(event)" ondragover="${tab}DragOver(event)" ondrop="${tab}DragDrop(event)" ondragleave="${tab}DragLeave(event)"`
+    : '';
+  const szBtnsHtml = cust ? `<div class="panel-size-btns visible">${sizeBtns(tab, id, sz)}</div>` : '';
+  const dh     = cust ? '<span style="font-size:9px;color:var(--muted);letter-spacing:.3px">drag</span>' : '';
+  const hdrRight = `<div style="display:flex;align-items:center;gap:8px">${szBtnsHtml}${extraHeaderHtml || ''}${dh}</div>`;
+
+  // Build wrapper classes
+  let wrapCls = 'panel-wrapper';
+  if (ph === 'calendar') {
+    wrapCls += ' ph-calendar';
+  } else {
+    wrapCls += sz === 'half' ? ' pw-half' : ' pw-full';
+    wrapCls += ph === 'short' ? ' ph-short' : ' ph-tall';
+  }
+
+  return `<div class="${wrapCls}" data-panel-id="${id}" ${drags}>
+    <div class="card">
+      <div class="card-header"><span class="card-title">${title}</span>${hdrRight}</div>
+      <div class="card-body">${bodyHtml}</div>
+    </div>
+  </div>`;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// OVERVIEW PANELS
+// ═══════════════════════════════════════════════════════════════
+const OV_PANELS = [
+  { id: 'equity',   label: 'Equity Curve' },
+  { id: 'wl',       label: 'Win / Loss / BE' },
+  { id: 'monthlyR', label: 'Monthly R' },
+  { id: 'calendar', label: 'Calendar' },
+];
+function getOvLayout()     { return uiPrefs.ovPanelLayout || OV_PANELS.map(p => p.id); }
+function saveOvLayout(ids) { setPref('ovPanelLayout', ids); }
+let ovDragSrc = null;
+function isOvCustomising() { return document.getElementById('ov-panel-customise-bar').classList.contains('visible'); }
+function openOvPanels()    { document.getElementById('ov-panel-customise-bar').classList.add('visible'); renderOvPanelPills(); renderOvPanels(); }
+function closeOvPanels()   { document.getElementById('ov-panel-customise-bar').classList.remove('visible'); renderOvPanels(); }
+function renderOvPanelPills() {
+  const active = getOvLayout();
+  document.getElementById('ov-panel-pills').innerHTML = OV_PANELS.map(p =>
+    `<span class="panel-pill ${active.includes(p.id) ? 'active' : ''}" onclick="toggleOvPanel('${p.id}')">${p.label}</span>`
+  ).join('');
+}
+function toggleOvPanel(id) {
+  let ids = getOvLayout();
+  if (ids.includes(id)) { if (ids.length <= 1) return; ids = ids.filter(x => x !== id); }
+  else ids = [...ids, id];
+  saveOvLayout(ids); renderOvPanelPills(); renderOvPanels();
+}
+
+function buildOvPanel(id) {
+  const cust = isOvCustomising();
+  if (id === 'equity')   return panelShell('ov', id, cust, 'Equity Curve', '<div class="chart-wrap"><canvas id="equityChart"></canvas></div>');
+  if (id === 'wl')       return panelShell('ov', id, cust, 'Win / Loss / BE', '<div class="chart-wrap"><canvas id="wlChart"></canvas></div>');
+  if (id === 'monthlyR') return panelShell('ov', id, cust, '<span id="annual-r-title">Monthly R</span>', '<div class="annual-r-grid-wrap"><div id="annual-r-grid"></div></div>');
+  if (id === 'calendar') {
+    // Calendar: isolated, full width, fixed height, no size buttons
+    const drags = cust ? `draggable="true" ondragstart="ovDragStart(event)" ondragend="ovDragEnd(event)" ondragover="ovDragOver(event)" ondrop="ovDragDrop(event)" ondragleave="ovDragLeave(event)"` : '';
+    const dh = cust ? '<span style="font-size:9px;color:var(--muted)">drag</span>' : '';
+    return `<div class="panel-wrapper ph-calendar" data-panel-id="calendar" ${drags}>
+      <div class="card"><div class="card-body">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+          <button class="btn btn-ghost btn-sm" onclick="calPrev()">\u2190 Prev</button>
+          <div style="font-family:'Syne',sans-serif;font-size:14px;font-weight:700" id="cal-title"></div>
+          <button class="btn btn-ghost btn-sm" onclick="calNext()">Next \u2192</button>
+          <div style="margin-left:auto;display:flex;align-items:center;gap:8px">${dh}</div>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin-bottom:7px">
+          ${['MON','TUE','WED','THU','FRI','SAT','SUN'].map(d => `<div style="font-size:9px;color:var(--muted);text-align:center;letter-spacing:1px">${d}</div>`).join('')}
+        </div>
+        <div id="cal-grid" style="display:grid;grid-template-columns:repeat(7,1fr);gap:6px"></div>
+        <div style="margin-top:12px" class="legend">
+          <span class="legend-item"><span class="legend-dot" style="background:var(--green)"></span>Profit</span>
+          <span class="legend-item"><span class="legend-dot" style="background:var(--red)"></span>Loss</span>
+          <span class="legend-item"><span class="legend-dot" style="background:var(--muted)"></span>No trades</span>
+        </div>
+      </div></div>
+    </div>`;
+  }
+  return '';
+}
+
+function renderOvPanels() {
+  ['equityChart', 'wlChart'].forEach(id => { if (CH[id]) { CH[id].destroy(); delete CH[id]; } });
+  document.getElementById('ov-panels-container').innerHTML = getOvLayout().map(id => buildOvPanel(id)).join('');
+  const m = calcM(getFiltered());
+  if (getOvLayout().includes('equity') && document.getElementById('equityChart') && m) {
+    rChart('equityChart', 'line', ['Start', ...m.sorted.map(t => t.date)], [{
+      data: m.eq, borderColor: 'var(--accent)', borderWidth: 2,
+      backgroundColor: ctx => { const g = ctx.chart.ctx.createLinearGradient(0,0,0,ctx.chart.height); g.addColorStop(0,'rgba(0,212,255,.14)'); g.addColorStop(1,'rgba(0,212,255,0)'); return g; },
+      fill: true, tension: .4, pointRadius: 1.5, pointBackgroundColor: 'var(--accent)'
+    }], { yLabel: 'R' });
+  }
+  if (getOvLayout().includes('wl') && document.getElementById('wlChart') && m) {
+    rChart('wlChart', 'doughnut', ['Win','Loss','Breakeven'], [{
+      data: [m.w, m.l, m.b],
+      backgroundColor: ['rgba(45,212,160,.75)','rgba(224,84,112,.75)','rgba(74,96,128,.5)'],
+      borderWidth: 0
+    }], { donut: true });
+  }
+  if (getOvLayout().includes('monthlyR')) renderAnnualR();
+  if (getOvLayout().includes('calendar')) renderCalendar();
+}
+
+// Drag
+function ovDragStart(e) { ovDragSrc = e.currentTarget.dataset.panelId; e.dataTransfer.effectAllowed = 'move'; setTimeout(() => { const el = document.querySelector('[data-panel-id="' + ovDragSrc + '"]'); if (el) el.classList.add('drag-source'); }, 0); }
+function ovDragEnd()    { document.querySelectorAll('#ov-panels-container .panel-wrapper').forEach(c => c.classList.remove('drag-source', 'drag-over')); ovDragSrc = null; }
+function ovDragOver(e)  { e.preventDefault(); const w = e.currentTarget; if (w.dataset.panelId === ovDragSrc) return; document.querySelectorAll('#ov-panels-container .panel-wrapper').forEach(c => { if (c.dataset.panelId !== ovDragSrc) c.classList.remove('drag-over'); }); w.classList.add('drag-over'); }
+function ovDragLeave(e) { e.currentTarget.classList.remove('drag-over'); }
+function ovDragDrop(e)  { e.preventDefault(); const tid = e.currentTarget.dataset.panelId; e.currentTarget.classList.remove('drag-over'); if (!ovDragSrc || ovDragSrc === tid) return; let ids = getOvLayout(); const f = ids.indexOf(ovDragSrc), t = ids.indexOf(tid); if (f === -1 || t === -1) return; ids.splice(f, 1); ids.splice(t, 0, ovDragSrc); saveOvLayout(ids); renderOvPanels(); if (isOvCustomising()) renderOvPanelPills(); }
+
+// ═══════════════════════════════════════════════════════════════
+// ANALYTICS PANELS
+// ═══════════════════════════════════════════════════════════════
+const AN_PANELS = [
+  { id: 'session',    label: 'P&L by Session' },
+  { id: 'pairBars',   label: 'Pair Performance' },
+  { id: 'wrPair',     label: 'Win Rate by Pair' },
+  { id: 'ls',         label: 'Long vs Short' },
+  { id: 'heatmap',    label: 'Heatmap' },
+  { id: 'dayPerf',    label: 'Perf by Day' },
+  { id: 'monthlyBar', label: 'Monthly R' },
+  { id: 'advMetrics', label: 'Advanced Metrics' },
+];
+function getAnLayout()     { return uiPrefs.anPanelLayout || AN_PANELS.map(p => p.id); }
+function saveAnLayout(ids) { setPref('anPanelLayout', ids); }
+let anDragSrc = null;
+function isAnCustomising() { return document.getElementById('an-panel-customise-bar').classList.contains('visible'); }
+function openAnPanels()    { document.getElementById('an-panel-customise-bar').classList.add('visible'); renderAnPanelPills(); renderAnalytics(); }
+function closeAnPanels()   { document.getElementById('an-panel-customise-bar').classList.remove('visible'); renderAnalytics(); }
+function renderAnPanelPills() {
+  const active = getAnLayout();
+  document.getElementById('an-panel-pills').innerHTML = AN_PANELS.map(p =>
+    `<span class="panel-pill ${active.includes(p.id) ? 'active' : ''}" onclick="toggleAnPanel('${p.id}')">${p.label}</span>`
+  ).join('');
+}
+function toggleAnPanel(id) {
+  let ids = getAnLayout();
+  if (ids.includes(id)) { if (ids.length <= 1) return; ids = ids.filter(x => x !== id); }
+  else ids = [...ids, id];
+  saveAnLayout(ids); renderAnPanelPills(); renderAnalytics();
+}
+
+function buildAnPanel(id) {
+  const cust = isAnCustomising();
+  if (id === 'session')    return panelShell('an', id, cust, 'P&amp;L by Session', '<div class="chart-wrap"><canvas id="sessionChart"></canvas></div>');
+  if (id === 'pairBars')   return panelShell('an', id, cust, 'Pair Performance', '<div class="pair-bar-row" id="pair-bars"></div>');
+  if (id === 'wrPair')     return panelShell('an', id, cust, 'Win Rate by Pair', '<div class="chart-wrap"><canvas id="wrPairChart"></canvas></div>');
+  if (id === 'ls')         return panelShell('an', id, cust, 'Long vs Short', '<div class="chart-wrap"><canvas id="lsChart"></canvas></div>');
+  if (id === 'heatmap')    return panelShell('an', id, cust, 'Time-of-Day Heatmap',
+    `<div class="heatmap-scroll"><div id="heatmap-container"></div>
+     <div style="display:flex;align-items:center;gap:7px;flex-wrap:wrap">
+       <span style="font-size:10px;color:var(--muted)">Low</span>
+       <div style="display:flex;gap:2px">
+         <div style="width:13px;height:13px;border-radius:2px;background:rgba(224,84,112,.7)"></div>
+         <div style="width:13px;height:13px;border-radius:2px;background:rgba(224,84,112,.35)"></div>
+         <div style="width:13px;height:13px;border-radius:2px;background:rgba(74,96,128,.3)"></div>
+         <div style="width:13px;height:13px;border-radius:2px;background:rgba(45,212,160,.35)"></div>
+         <div style="width:13px;height:13px;border-radius:2px;background:rgba(45,212,160,.75)"></div>
+       </div>
+       <span style="font-size:10px;color:var(--muted)">High</span>
+       <span style="font-size:10px;color:var(--muted);margin-left:6px">Grey = no trades</span>
+     </div></div>`,
+    `<select class="analytics-select" id="heatmap-metric" onchange="renderHeatmap()">
+       <option value="r">Total R</option><option value="wr">Win Rate %</option><option value="count">Trade Count</option>
+     </select>`);
+  if (id === 'dayPerf')    return panelShell('an', id, cust, 'Performance by Day', '<div class="day-grid" id="day-grid"></div>');
+  if (id === 'monthlyBar') return panelShell('an', id, cust, 'Monthly R', '<div class="chart-wrap"><canvas id="monthlyChart"></canvas></div>');
+  if (id === 'advMetrics') return panelShell('an', id, cust, 'Advanced Metrics', '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:18px;overflow-y:auto;height:100%" id="adv-metrics"></div>');
+  return '';
+}
+
+// Drag
+function anDragStart(e) { anDragSrc = e.currentTarget.dataset.panelId; e.dataTransfer.effectAllowed = 'move'; setTimeout(() => { const el = document.querySelector('[data-panel-id="' + anDragSrc + '"]'); if (el) el.classList.add('drag-source'); }, 0); }
+function anDragEnd()    { document.querySelectorAll('#an-panels-container .panel-wrapper').forEach(c => c.classList.remove('drag-source', 'drag-over')); anDragSrc = null; }
+function anDragOver(e)  { e.preventDefault(); const w = e.currentTarget; if (w.dataset.panelId === anDragSrc) return; document.querySelectorAll('#an-panels-container .panel-wrapper').forEach(c => { if (c.dataset.panelId !== anDragSrc) c.classList.remove('drag-over'); }); w.classList.add('drag-over'); }
+function anDragLeave(e) { e.currentTarget.classList.remove('drag-over'); }
+function anDragDrop(e)  { e.preventDefault(); const tid = e.currentTarget.dataset.panelId; e.currentTarget.classList.remove('drag-over'); if (!anDragSrc || anDragSrc === tid) return; let ids = getAnLayout(); const f = ids.indexOf(anDragSrc), t = ids.indexOf(tid); if (f === -1 || t === -1) return; ids.splice(f, 1); ids.splice(t, 0, anDragSrc); saveAnLayout(ids); renderAnalytics(); if (isAnCustomising()) renderAnPanelPills(); }
+
+// ═══════════════════════════════════════════════════════════════
+// OVERVIEW RENDER
+// ═══════════════════════════════════════════════════════════════
+function renderOverview() {
+  const m = calcM(getFiltered()), sg = document.getElementById('ov-stats');
+  if (!m) renderEmptyTiles(sg); else renderTiles(m, sg);
+  renderOvPanels();
+}
+
+// ═══════════════════════════════════════════════════════════════
+// TRADE DATABASE RENDER
+// ═══════════════════════════════════════════════════════════════
+function renderDatabase() {
+  const fp = document.getElementById('f-fp').value;
+  const fd = document.getElementById('f-fd').value;
+  const fs = document.getElementById('f-fs').value;
+  const fr = document.getElementById('f-fr').value;
+  const fn = document.getElementById('f-fn').value.toLowerCase();
+  const ffrom = document.getElementById('f-from').value;
+  const fto   = document.getElementById('f-to').value;
+  const filt = trades.filter(t =>
+    (!fp || t.pair === fp) && (!fd || t.dir === fd) &&
+    (!fs || t.session === fs) && (!fr || t.result === fr) &&
+    (!fn || (t.notes || '').toLowerCase().includes(fn)) &&
+    (!ffrom || t.date >= ffrom) && (!fto || t.date <= fto)
+  ).slice().sort((a, b) =>
+    new Date(b.date + ' ' + (b.time || '00:00')) - new Date(a.date + ' ' + (a.time || '00:00'))
+  );
+  document.getElementById('db-count').textContent = `${filt.length} trade${filt.length !== 1 ? 's' : ''}`;
+  const tb = document.getElementById('db-body');
+  if (!filt.length) {
+    tb.innerHTML = `<tr><td colspan="9"><div class="empty-state">
+      <div class="empty-icon">\u25c8</div>
+      <div class="empty-title">${trades.length ? 'No matches' : 'No trades yet'}</div>
+      <div class="empty-sub">${trades.length ? 'Try adjusting your filters.' : 'Your Notion trades will appear here once synced.'}</div>
+    </div></td></tr>`;
+    return;
+  }
+  tb.innerHTML = filt.map(t =>
+    `<tr>
+      <td style="color:var(--muted);font-size:11px;max-width:80px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${t.id}</td>
+      <td>${t.date}</td>
+      <td style="color:var(--muted2)">${t.time || '—'}</td>
+      <td><span class="pair-chip">${t.pair}</span></td>
+      <td><span class="badge badge-${(t.dir || '').toLowerCase().includes('long') || t.dir === 'Buy' ? 'long' : 'short'}">${t.dir}</span></td>
+      <td style="font-size:11px;color:var(--muted2)">${t.session}</td>
+      <td><span class="badge badge-${t.result === 'Win' ? 'win' : t.result === 'Loss' ? 'loss' : 'be'}">${t.result}</span></td>
+      <td class="${+t.r > 0 ? 'r-pos' : +t.r < 0 ? 'r-neg' : 'r-zero'}">${fmtR(t.r)}</td>
+      <td style="max-width:140px;font-size:11px;color:var(--muted2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${(t.notes || '').replace(/"/g,'&quot;')}">${t.notes || '—'}</td>
+    </tr>`
+  ).join('');
+}
+
+// ═══════════════════════════════════════════════════════════════
+// HEATMAP
+// ═══════════════════════════════════════════════════════════════
+function renderHeatmap() {
+  const container = document.getElementById('heatmap-container'); if (!container) return;
+  const metric = document.getElementById('heatmap-metric')?.value || 'r';
+  const ft = getFiltered();
+  const DAYS = ['Mon','Tue','Wed','Thu','Fri'], HOURS = [];
+  for (let h = 7; h <= 18; h++) HOURS.push(h);
+  const data = {}; DAYS.forEach(d => { data[d] = {}; HOURS.forEach(h => { data[d][h] = { r:0, count:0, wins:0 }; }); });
+  ft.forEach(t => {
+    if (!t.time || !t.date) return;
+    const di = new Date(t.date).getDay(); if (di === 0 || di === 6) return;
+    const dn = DAYS[di - 1], hour = parseInt((t.time || '00:00').split(':')[0]);
+    if (hour < 7 || hour > 18) return;
+    data[dn][hour].r += (+t.r || 0); data[dn][hour].count++; if (t.result === 'Win') data[dn][hour].wins++;
+  });
+  let vals = []; DAYS.forEach(d => HOURS.forEach(h => { if (data[d][h].count > 0) { const v = metric === 'r' ? data[d][h].r : metric === 'wr' ? data[d][h].wins / data[d][h].count * 100 : data[d][h].count; vals.push(v); } }));
+  const minV = vals.length ? Math.min(...vals) : 0, maxV = vals.length ? Math.max(...vals) : 1;
+  function getC(v) { if (minV === maxV) return 'rgba(74,96,128,.35)'; if (v < 0) { const i = Math.min(1, Math.abs(v) / Math.max(Math.abs(minV), 0.001)); return `rgba(224,84,112,${0.15 + i * 0.6})`; } const i = (v - minV) / (maxV - minV); return `rgba(45,212,160,${0.12 + i * 0.68})`; }
+  function fmtCell(cell) { if (!cell.count) return ''; if (metric === 'r') { const v = cell.r; if (v > 0) return v.toFixed(2) + 'R'; if (v < 0) return '(' + Math.abs(v).toFixed(2) + 'R)'; return '0.00R'; } if (metric === 'wr') return (cell.wins / cell.count * 100).toFixed(0) + '%'; return cell.count + ''; }
+  let html = `<div class="heatmap-grid" style="grid-template-columns:36px ${HOURS.map(() => '1fr').join(' ')}"><div></div>`;
+  HOURS.forEach(h => { html += `<div class="heatmap-col-header">${String(h).padStart(2,'0')}:00</div>`; });
+  DAYS.forEach(d => {
+    html += `<div class="heatmap-label">${d}</div>`;
+    HOURS.forEach(h => { const cell = data[d][h], has = cell.count > 0; const v = has ? (metric === 'r' ? cell.r : metric === 'wr' ? cell.wins / cell.count * 100 : cell.count) : null; html += `<div class="heatmap-cell" style="background:${has ? getC(v) : 'rgba(74,96,128,.1)'}" title="${d} ${h}:00 \u2014 ${has ? cell.count + ' trade' + (cell.count !== 1 ? 's' : '') + ', ' + fmtR(cell.r) : 'no trades'}">${has ? fmtCell(cell) : ''}</div>`; });
+  });
+  html += '</div>'; container.innerHTML = html;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// ANALYTICS RENDER
+// ═══════════════════════════════════════════════════════════════
+function renderAnalytics() {
+  if (!document.getElementById('page-analytics').classList.contains('active')) return;
+  const ft = getFiltered();
+  const pairs    = [...new Set(trades.map(t => t.pair).filter(v => v && v !== '—'))].sort();
+  const sessions = [...new Set(trades.map(t => t.session).filter(v => v && v !== '—'))].sort();
+  ['sessionChart','wrPairChart','lsChart','monthlyChart'].forEach(id => { if (CH[id]) { CH[id].destroy(); delete CH[id]; } });
+  const ids = getAnLayout();
+  document.getElementById('an-panels-container').innerHTML = ids.map(id => buildAnPanel(id)).join('');
+
+  if (ids.includes('session') && document.getElementById('sessionChart')) {
+    const sR = sessions.map(s => ft.filter(t => t.session === s).reduce((a, t) => a + (+t.r || 0), 0));
+    rChart('sessionChart', 'bar', sessions, [{ data: sR, backgroundColor: sR.map(v => v >= 0 ? 'rgba(45,212,160,.65)' : 'rgba(224,84,112,.65)'), borderRadius: 4, borderSkipped: false }], { yLabel: 'R' });
+  }
+  if (ids.includes('pairBars') && document.getElementById('pair-bars')) {
+    const pR = pairs.map(p => ft.filter(t => t.pair === p).reduce((a, t) => a + (+t.r || 0), 0));
+    const mx = Math.max(1, ...pR.map(Math.abs));
+    document.getElementById('pair-bars').innerHTML = pairs.map((p, i) =>
+      `<div class="pair-bar-item">
+        <div class="pair-bar-label"><span>${p}</span><span class="${pR[i] >= 0 ? 'r-pos' : 'r-neg'}">${fmtR(pR[i])} (${ft.filter(t => t.pair === p).length})</span></div>
+        <div class="pair-bar-track"><div class="pair-bar-fill" style="width:${Math.abs(pR[i])/mx*100}%;background:${pR[i] >= 0 ? 'rgba(45,212,160,.5)' : 'rgba(224,84,112,.5)'}"></div></div>
+      </div>`
+    ).join('');
+  }
+  if (ids.includes('wrPair') && document.getElementById('wrPairChart')) {
+    const wr = pairs.map(p => { const pt = ft.filter(t => t.pair === p); return pt.length ? pt.filter(t => t.result === 'Win').length / pt.length * 100 : 0; });
+    rChart('wrPairChart', 'bar', pairs, [{ data: wr, backgroundColor: 'rgba(74,96,128,.6)', borderColor: 'rgba(74,96,128,.9)', borderWidth: 1, borderRadius: 4, borderSkipped: false }], { yLabel: '%', max: 100 });
+  }
+  if (ids.includes('ls') && document.getElementById('lsChart')) {
+    rChart('lsChart', 'doughnut', ['Long','Short'], [{ data: [ft.filter(t => t.dir === 'Long' || t.dir === 'Buy').length, ft.filter(t => t.dir === 'Short' || t.dir === 'Sell').length], backgroundColor: ['rgba(74,96,128,.8)','rgba(138,156,180,.55)'], borderWidth: 0 }], { donut: true });
+  }
+  if (ids.includes('heatmap')) renderHeatmap();
+  if (ids.includes('dayPerf') && document.getElementById('day-grid')) {
+    const days = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'], dR = [0,0,0,0,0,0,0], dN = [0,0,0,0,0,0,0];
+    ft.forEach(t => { const day = new Date(t.date).getDay(), i = day === 0 ? 6 : day - 1; dR[i] += (+t.r || 0); dN[i]++; });
+    document.getElementById('day-grid').innerHTML = days.map((d, i) =>
+      `<div class="day-cell"><div class="day-name">${d}</div><div class="day-val ${dR[i] > 0 ? 'pos' : dR[i] < 0 ? 'neg' : ''}" title="${dN[i]} trades">${dN[i] ? fmtR(dR[i]) : '—'}</div></div>`
+    ).join('');
+  }
+  if (ids.includes('monthlyBar') && document.getElementById('monthlyChart')) {
+    const mm = {}; ft.forEach(t => { const k = t.date.slice(0, 7); mm[k] = (mm[k] || 0) + (+t.r || 0); });
+    const mo = Object.keys(mm).sort();
+    rChart('monthlyChart', 'bar', mo, [{ data: mo.map(m => +mm[m].toFixed(2)), backgroundColor: mo.map(m => mm[m] >= 0 ? 'rgba(45,212,160,.65)' : 'rgba(224,84,112,.65)'), borderRadius: 4, borderSkipped: false }], { yLabel: 'R' });
+  }
+  if (ids.includes('advMetrics') && document.getElementById('adv-metrics')) {
+    const m = calcM(ft);
+    document.getElementById('adv-metrics').innerHTML = m ? [
+      ['Total Trades', m.n], ['Winners', m.w], ['Losers', m.l], ['Breakevens', m.b],
+      ['Win Rate', m.wr.toFixed(1) + '%'], ['Profit Factor', isFinite(m.pf) ? m.pf.toFixed(2) : '\u221e'],
+      ['Expectancy', fmtR(m.exp)], ['Avg Win', fmtR(m.aw)], ['Avg Loss', fmtR(-m.al)],
+      ['Largest Win', fmtR(m.lw)], ['Largest Loss', fmtR(m.ll)], ['Best Win Streak', m.bw],
+      ['Worst Loss Streak', m.bl], ['Max Drawdown', fmtR(-m.dd)], ['Total R', fmtR(m.tot)],
+      ['Avg R/R', m.al > 0 ? (m.aw / m.al).toFixed(2) : '—'],
+    ].map(([l, v]) => `<div style="display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--border)"><span style="font-size:11px;color:var(--muted2)">${l}</span><span style="font-size:13px;font-weight:600;color:var(--text)">${v}</span></div>`).join('')
+    : `<div style="grid-column:1/-1;text-align:center;color:var(--muted);padding:32px">No data yet.</div>`;
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// MONTHLY R GRID & CALENDAR
+// ═══════════════════════════════════════════════════════════════
+function renderAnnualR() {
+  const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const grid = document.getElementById('annual-r-grid'); if (!grid) return;
+  const ft = getFiltered();
+  const years = [...new Set(ft.map(t => t.date && t.date.slice(0, 4)).filter(Boolean))].sort();
+  const yr = years.length ? years[years.length - 1] : new Date().getFullYear().toString();
+  const titleEl = document.getElementById('annual-r-title');
+  if (titleEl) titleEl.textContent = yr + ' \u2014 Monthly R';
+  grid.innerHTML = MONTHS.map((mon, i) => {
+    const ms = yr + '-' + String(i + 1).padStart(2, '0');
+    const mt = ft.filter(t => t.date && t.date.startsWith(ms));
+    const total = mt.reduce((s, t) => s + (+t.r || 0), 0), has = mt.length > 0;
+    const col = !has ? 'var(--muted)' : total > 0 ? 'var(--green)' : total < 0 ? 'var(--red)' : 'var(--muted2)';
+    const bg  = !has ? 'var(--bg3)' : total > 0 ? 'rgba(45,212,160,.07)' : total < 0 ? 'rgba(224,84,112,.07)' : 'var(--bg3)';
+    const bdr = has ? (total > 0 ? 'rgba(45,212,160,.18)' : total < 0 ? 'rgba(224,84,112,.18)' : 'var(--border)') : 'var(--border)';
+    return `<div style="text-align:center;background:${bg};border-radius:7px;padding:9px 3px;border:1px solid ${bdr}">
+      <div style="font-size:8px;color:var(--muted);letter-spacing:.8px;margin-bottom:4px">${mon.toUpperCase()}</div>
+      <div style="font-size:12px;font-weight:600;color:${col};font-variant-numeric:tabular-nums">${has ? fmtR(total) : '—'}</div>
+      ${has ? `<div style="font-size:8px;color:var(--muted);margin-top:2px">${mt.length}T</div>` : ''}
+    </div>`;
+  }).join('');
+}
+
+function renderCalendar() {
+  const titleEl = document.getElementById('cal-title'); if (!titleEl) return;
+  titleEl.textContent = new Date(calY, calM).toLocaleString('default', { month: 'long', year: 'numeric' });
+  const fd = new Date(calY, calM, 1).getDay(), dim = new Date(calY, calM + 1, 0).getDate(), off = fd === 0 ? 6 : fd - 1;
+  const dm = {};
+  getFiltered().forEach(t => {
+    if (t.date.startsWith(`${calY}-${String(calM + 1).padStart(2, '0')}`)) {
+      dm[t.date] = dm[t.date] || { r: 0, n: 0 };
+      dm[t.date].r += (+t.r || 0); dm[t.date].n++;
+    }
+  });
+  let h = '';
+  for (let i = 0; i < off; i++) h += '<div></div>';
+  for (let d = 1; d <= dim; d++) {
+    const ds = `${calY}-${String(calM + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+    const info = dm[ds], today = new Date().toISOString().slice(0, 10) === ds;
+    let bg = 'var(--bg3)', rs = '';
+    if (info) {
+      bg = info.r > 0 ? 'rgba(45,212,160,.08)' : info.r < 0 ? 'rgba(224,84,112,.08)' : 'rgba(74,96,128,.1)';
+      const c = info.r > 0 ? 'var(--green)' : info.r < 0 ? 'var(--red)' : 'var(--muted2)';
+      rs = `<div style="font-size:13px;font-weight:600;color:${c};font-variant-numeric:tabular-nums;margin-top:3px">${fmtR(info.r)}</div><div style="font-size:9px;color:var(--muted);margin-top:2px">${fmtTrades(info.n)}</div>`;
+    }
+    h += `<div style="background:${bg};border-radius:7px;padding:7px;min-height:56px;border:${today ? '1px solid rgba(0,212,255,.35)' : '1px solid transparent'}">
+      <div style="font-size:10px;color:${today ? 'var(--accent)' : 'var(--muted2)'};font-weight:${today ? 700 : 400}">${d}</div>${rs}
+    </div>`;
+  }
+  const cg = document.getElementById('cal-grid'); if (cg) cg.innerHTML = h;
+}
+function calPrev() { calM--; if (calM < 0)  { calM = 11; calY--; } renderCalendar(); }
+function calNext() { calM++; if (calM > 11) { calM = 0;  calY++; } renderCalendar(); }
+
+// ═══════════════════════════════════════════════════════════════
+// CHART HELPER
+// ═══════════════════════════════════════════════════════════════
+function chartColors() {
+  const light = document.documentElement.getAttribute('data-theme') === 'light';
+  return {
+    tick:    light ? '#96b8d4' : '#5a6a82',
+    grid:    light ? 'rgba(61,85,117,.4)' : 'rgba(35,48,68,.5)',
+    tooltip: light
+      ? { bg: '#243652', border: '#3d5575', title: '#96b8d4', body: '#dce8f5' }
+      : { bg: '#131c2b', border: '#233044', title: '#8899b0', body: '#e8edf5' },
+  };
+}
+function rChart(id, type, labels, datasets, opts = {}) {
+  if (CH[id]) CH[id].destroy();
+  const ctx = document.getElementById(id); if (!ctx) return;
+  const cc = chartColors();
+  const ttip = { backgroundColor: cc.tooltip.bg, borderColor: cc.tooltip.border, borderWidth: 1, titleColor: cc.tooltip.title, bodyColor: cc.tooltip.body, titleFont: { family: 'DM Sans', size: 11 }, bodyFont: { family: 'DM Sans', size: 12 }, padding: 10 };
+  let cfg;
+  if (type === 'doughnut') {
+    cfg = { type, data: { labels, datasets }, options: { responsive: true, maintainAspectRatio: false, cutout: '65%', plugins: { legend: { display: true, position: 'bottom', labels: { color: cc.tick, font: { family: 'DM Sans', size: 10 }, padding: 12, boxWidth: 10 } }, tooltip: ttip } } };
+  } else {
+    cfg = { type, data: { labels, datasets }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: ttip }, scales: { x: { ticks: { color: cc.tick, font: { family: 'DM Sans', size: 10 } }, grid: { color: cc.grid } }, y: { ticks: { color: cc.tick, font: { family: 'DM Sans', size: 10 } }, grid: { color: cc.grid } } } } };
+    if (opts.yLabel)           cfg.options.scales.y.title = { display: true, text: opts.yLabel, color: cc.tick, font: { family: 'DM Sans', size: 10 } };
+    if (opts.max !== undefined) cfg.options.scales.y.max = opts.max;
+  }
+  CH[id] = new Chart(ctx, cfg);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// REMAP MODAL
+// ═══════════════════════════════════════════════════════════════
+let schemaColumns = [];
+const FT_HINTS = { 'rm-date':['date'], 'rm-r':['number','formula'], 'rm-pair':['select','multi_select','rich_text','title'], 'rm-direction':['select','multi_select','rich_text'], 'rm-session':['select','multi_select','rich_text'], 'rm-result':['select','multi_select','rich_text','status'], 'rm-time':['rich_text','title','formula','select'], 'rm-notes':['title','rich_text'], 'rm-slSize':['number','formula'], 'rm-planExecuted':['select','multi_select','rich_text','status'] };
+const FT_GUESS = { 'rm-date':['date','Date','Trade Date','Entry Date'], 'rm-r':['Result','R','R Value','P&L','PnL','R Multiple'], 'rm-pair':['Pair','Instrument','Symbol','Market'], 'rm-direction':['Position','Direction','Type','Side'], 'rm-session':['Session','Market Session'], 'rm-result':['Outcome','Win/Loss','Result','Status'], 'rm-time':['Time','Entry Time'], 'rm-notes':['Name','Notes','Description'], 'rm-slSize':['SL Size','SL','Stop Loss','SL SIze'], 'rm-planExecuted':['Plan Executed','Rule Based','Followed Plan'] };
+
+function remapRow(id, name, desc, req) {
+  const ph    = req ? '— choose column —' : '— skip this field —';
+  const badge = req
+    ? '<span style="display:inline-block;margin-top:3px;font-size:9px;font-weight:700;letter-spacing:.5px;color:var(--accent);background:rgba(0,212,255,.07);border:1px solid rgba(0,212,255,.18);border-radius:3px;padding:1px 5px;">Required</span>'
+    : '<span style="display:inline-block;margin-top:3px;font-size:9px;font-weight:700;letter-spacing:.5px;color:var(--muted);background:var(--bg3);border:1px solid var(--border);border-radius:3px;padding:1px 5px;">Optional</span>';
+  return `<div style="display:grid;grid-template-columns:1fr 20px 1fr;align-items:center;gap:12px;padding:13px 0;border-bottom:1px solid var(--border);">
+    <div style="display:flex;flex-direction:column;gap:3px;">
+      <div style="font-size:13px;font-weight:600;color:var(--text);">${name}</div>
+      <div style="font-size:11px;color:var(--muted);line-height:1.4;">${desc}</div>
+      ${badge}
+    </div>
+    <div style="color:var(--muted);font-size:12px;text-align:center;">\u2192</div>
+    <select id="${id}" style="background:var(--bg3);border:1px solid var(--border);border-radius:7px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:12px;padding:9px 28px 9px 11px;width:100%;outline:none;appearance:none;-webkit-appearance:none;background-image:url('data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'10\' height=\'6\' viewBox=\'0 0 10 6\'%3E%3Cpath d=\'M1 1l4 4 4-4\' stroke=\'%235a6a82\' stroke-width=\'1.5\' fill=\'none\' stroke-linecap=\'round\'/%3E%3C/svg%3E');background-repeat:no-repeat;background-position:right 9px center;transition:border-color .15s;cursor:pointer;" onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'">
+      <option value="">${ph}</option>
+    </select>
+  </div>`;
+}
+
+async function openRemapModal() {
+  if (!document.getElementById('remap-overlay')) {
+    const o = document.createElement('div'); o.id = 'remap-overlay';
+    o.style.cssText = 'position:fixed;inset:0;z-index:2000;background:rgba(0,0,0,.7);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;padding:24px;';
+    o.innerHTML = `<div style="background:var(--bg2);border:1px solid var(--border2);border-radius:14px;width:640px;max-width:95vw;max-height:88vh;overflow-y:auto;box-shadow:0 24px 80px rgba(0,0,0,.6);display:flex;flex-direction:column;">
+      <div style="padding:20px 26px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:var(--bg2);z-index:1;border-radius:14px 14px 0 0;">
+        <div>
+          <div style="font-family:'Syne',sans-serif;font-size:16px;font-weight:700;color:var(--text);">Edit Column Mapping</div>
+          <div id="remap-db" style="font-size:11px;color:var(--muted);margin-top:3px;"></div>
+        </div>
+        <button onclick="closeRemapModal()" style="background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer;padding:4px 8px;border-radius:4px;line-height:1;" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--muted)'">\u00d7</button>
+      </div>
+      <div id="remap-body" style="padding:0 26px 8px;flex:1;">
+        <div id="remap-loading" style="padding:48px 0;text-align:center;display:flex;flex-direction:column;align-items:center;gap:14px;">
+          <div style="width:28px;height:28px;border:2px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;"></div>
+          <div style="font-size:12px;color:var(--muted);">Loading columns\u2026</div>
+        </div>
+        <div id="remap-content" style="display:none;">
+          <div style="font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--accent);font-weight:700;padding:18px 0 10px;border-bottom:1px solid var(--border);">Required Fields</div>
+          ${remapRow('rm-date', 'Date', 'The date the trade was taken.', true)}
+          ${remapRow('rm-r', 'R Value', 'Profit or loss in R multiples.', true)}
+          <div style="font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--accent);font-weight:700;padding:18px 0 10px;border-bottom:1px solid var(--border);margin-top:8px;">Optional Fields</div>
+          ${remapRow('rm-pair', 'Pair / Instrument', 'Currency pair or instrument traded.', false)}
+          ${remapRow('rm-direction', 'Direction', 'Long or Short / Buy or Sell.', false)}
+          ${remapRow('rm-session', 'Session', 'Trading session (e.g. London).', false)}
+          ${remapRow('rm-result', 'Result Override', 'Win/Loss/BE. If blank, derived from R.', false)}
+          ${remapRow('rm-time', 'Entry Time', 'Time the trade was entered.', false)}
+          ${remapRow('rm-notes', 'Notes / Trade Name', 'Text notes or page title.', false)}
+          ${remapRow('rm-slSize', 'Stop Loss Size', 'Stop loss size in pips or points.', false)}
+          ${remapRow('rm-planExecuted', 'Plan Executed', 'Yes/No column.', false)}
+        </div>
+        <div id="remap-error" style="display:none;margin-top:14px;padding:11px 14px;border-radius:8px;font-size:12px;background:rgba(224,84,112,.07);border:1px solid rgba(224,84,112,.2);color:var(--red);"></div>
+      </div>
+      <div style="padding:14px 26px 20px;border-top:1px solid var(--border);display:flex;gap:10px;align-items:center;position:sticky;bottom:0;background:var(--bg2);border-radius:0 0 14px 14px;">
+        <button id="remap-save-btn" onclick="saveRemapModal()" style="display:none;" class="btn btn-primary btn-sm">Save Mapping</button>
+        <button onclick="closeRemapModal()" class="btn btn-ghost btn-sm">Cancel</button>
+        <span id="remap-save-status" style="font-size:12px;color:var(--muted);margin-left:4px;"></span>
+      </div>
+    </div>`;
+    document.body.appendChild(o);
+    o.addEventListener('click', e => { if (e.target === o) closeRemapModal(); });
+  }
+  document.getElementById('remap-loading').style.display  = 'flex';
+  document.getElementById('remap-content').style.display  = 'none';
+  document.getElementById('remap-error').style.display    = 'none';
+  document.getElementById('remap-save-btn').style.display = 'none';
+  document.getElementById('remap-save-status').textContent = '';
+  document.getElementById('remap-overlay').style.display  = 'flex';
+  try {
+    const r = await fetch(`${WORKER}/notion/schema`, { credentials: 'include', headers: authH() });
+    if (!r.ok) { const err = await r.json(); showRemapError(err.error || 'Could not load columns.'); return; }
+    const d = await r.json();
+    schemaColumns = d.columns || [];
+    document.getElementById('remap-db').textContent = d.databaseName || '';
+    populateRemapDropdowns(schemaColumns);
+    document.getElementById('remap-loading').style.display  = 'none';
+    document.getElementById('remap-content').style.display  = 'block';
+    document.getElementById('remap-save-btn').style.display = 'inline-flex';
+  } catch(e) { showRemapError('Could not reach EdgeTrack. Please try again.'); }
+}
+
+function populateRemapDropdowns(columns) {
+  ['rm-date','rm-r','rm-pair','rm-direction','rm-session','rm-result','rm-time','rm-notes','rm-slSize','rm-planExecuted'].forEach(id => {
+    const el = document.getElementById(id); if (!el) return;
+    const first = el.options[0]; el.innerHTML = ''; el.appendChild(first);
+    const pref = FT_HINTS[id] || [];
+    const sorted = [...columns].sort((a, b) => { const aP = pref.includes(a.type) ? 0 : 1, bP = pref.includes(b.type) ? 0 : 1; if (aP !== bP) return aP - bP; return a.name.localeCompare(b.name); });
+    sorted.forEach(col => { const tl = col.type === 'number' || col.type === 'formula' ? col.type : col.type === 'date' ? 'date' : col.type === 'select' || col.type === 'multi_select' || col.type === 'status' ? 'select' : col.type === 'title' ? 'title' : 'text'; const o = document.createElement('option'); o.value = col.name; o.textContent = `${col.name} [${tl}]`; el.appendChild(o); });
+    const guesses = FT_GUESS[id] || [];
+    for (const g of guesses) { for (let i = 0; i < el.options.length; i++) { if (el.options[i].value.toLowerCase() === g.toLowerCase()) { el.selectedIndex = i; el.style.borderColor = 'rgba(0,212,255,.35)'; break; } } if (el.selectedIndex > 0) break; }
+  });
+}
+
+async function saveRemapModal() {
+  const dv = document.getElementById('rm-date').value, rv = document.getElementById('rm-r').value;
+  if (!dv) { showRemapError('Date field is required.'); return; }
+  if (!rv) { showRemapError('R Value field is required.'); return; }
+  const btn = document.getElementById('remap-save-btn'), st = document.getElementById('remap-save-status');
+  btn.disabled = true; btn.textContent = 'Saving\u2026'; st.textContent = '';
+  const fm = { date: dv, r: rv, pair: document.getElementById('rm-pair').value || null, direction: document.getElementById('rm-direction').value || null, session: document.getElementById('rm-session').value || null, result: document.getElementById('rm-result').value || null, time: document.getElementById('rm-time').value || null, notes: document.getElementById('rm-notes').value || null, slSize: document.getElementById('rm-slSize').value || null, planExecuted: document.getElementById('rm-planExecuted').value || null };
+  try {
+    const r = await fetch(`${WORKER}/auth/mapping`, { method: 'POST', credentials: 'include', headers: authH(), body: JSON.stringify({ fieldMapping: fm }) });
+    const d = await r.json();
+    if (!r.ok) { showRemapError(d.error || 'Could not save mapping.'); btn.disabled = false; btn.textContent = 'Save Mapping'; return; }
+    st.style.color = 'var(--green)'; st.textContent = 'Saved.';
+    setTimeout(() => { closeRemapModal(); resyncNotion(); }, 800);
+  } catch(e) { showRemapError('Could not reach EdgeTrack.'); btn.disabled = false; btn.textContent = 'Save Mapping'; }
+}
+function showRemapError(msg) { document.getElementById('remap-loading').style.display = 'none'; const e = document.getElementById('remap-error'); e.textContent = msg; e.style.display = 'block'; }
+function closeRemapModal()   { const o = document.getElementById('remap-overlay'); if (o) o.style.display = 'none'; }
+function goToRemap()         { document.getElementById('settings-menu').classList.remove('open'); openRemapModal(); }
+
+// ═══════════════════════════════════════════════════════════════
+// ACCOUNT ACTIONS
+// ═══════════════════════════════════════════════════════════════
+async function disconnect() {
+  document.getElementById('settings-menu').classList.remove('open');
+  try { await fetch(`${WORKER}/auth/logout`, { method: 'POST', credentials: 'include', headers: authH() }); } catch(e) {}
+  clearToken(); window.location.href = 'onboarding.html';
+}
+function confirmDeleteAccount() {
+  document.getElementById('settings-menu').classList.remove('open');
+  if (confirm('Delete your EdgeTrack account?\n\nThis permanently erases your session and credentials. Your Notion database is unaffected.\n\nThis cannot be undone.')) deleteAccount();
+}
+async function deleteAccount() {
+  try { await fetch(`${WORKER}/auth/account`, { method: 'DELETE', credentials: 'include', headers: authH() }); } catch(e) {}
+  clearToken(); window.location.href = 'onboarding.html';
+}
+
+// ═══════════════════════════════════════════════════════════════
+// MISC UTILS
+// ═══════════════════════════════════════════════════════════════
+function toggleMenu(id, e) { e.stopPropagation(); document.getElementById(id).classList.toggle('open'); }
+document.addEventListener('click', () => document.getElementById('settings-menu')?.classList.remove('open'));
+
+let toastTimer;
+function toast(msg, type = '') {
+  const el = document.getElementById('toast');
+  el.textContent = msg; el.className = `toast ${type} show`;
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => el.classList.remove('show'), 3200);
+}
+</script>
+</body>
+</html>
