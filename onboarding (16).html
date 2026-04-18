@@ -1,0 +1,923 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EdgeVantage — Connect Your Notion</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%23080c12'/%3E%3Crect width='32' height='32' rx='6' fill='none' stroke='%2300d4ff' stroke-width='1.5'/%3E%3Ccircle cx='16' cy='16' r='4' fill='%2300d4ff'/%3E%3C/svg%3E">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=Syne:wght@700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#080c12;
+  --bg2:#131c2b;
+  --bg3:#1a2538;
+  --bg4:#202e42;
+  --border:#233044;
+  --border2:#2d3f58;
+  --text:#e8edf5;
+  --muted:#5a6a82;
+  --muted2:#8899b0;
+  --accent:#00d4ff;
+  --green:#00e5a0;
+  --red:#ff4466;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1);}50%{opacity:.6;transform:scale(.85);}}
+@keyframes spin{to{transform:rotate(360deg);}}
+header{position:fixed;top:0;left:0;right:0;height:60px;background:rgba(8,12,18,0.97);backdrop-filter:blur(16px);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 28px;z-index:100;}
+.logo{font-family:'Syne',sans-serif;font-size:18px;font-weight:800;letter-spacing:-0.5px;display:flex;align-items:center;gap:10px;}
+.logo-dot{width:8px;height:8px;border-radius:50%;background:var(--accent);box-shadow:0 0 8px var(--accent);animation:pulse 2s infinite;}
+.container{width:100%;max-width:600px;margin-top:72px;padding-bottom:32px;}
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:14px;overflow:hidden;box-shadow:0 8px 40px rgba(0,0,0,.5);}
+.card-header{padding:28px 32px 0;}
+.card-header h1{font-family:'Syne',sans-serif;font-size:22px;font-weight:800;margin-bottom:8px;}
+.card-header p{font-size:13px;color:var(--muted2);line-height:1.6;}
+
+/* OAuth primary panel — the recommended path */
+.oauth-panel{padding:28px 32px 24px;display:flex;flex-direction:column;gap:14px;}
+.oauth-benefits{display:flex;flex-direction:column;gap:8px;margin-top:4px;}
+.oauth-benefit{display:flex;gap:10px;align-items:flex-start;font-size:12.5px;color:var(--muted2);line-height:1.6;}
+.oauth-benefit svg{flex-shrink:0;margin-top:3px;color:var(--accent);}
+.oauth-tip{display:flex;gap:10px;align-items:flex-start;padding:11px 13px;background:rgba(0,212,255,.04);border:1px solid rgba(0,212,255,.15);border-radius:8px;font-size:12px;color:var(--muted2);line-height:1.55;}
+.oauth-tip svg{flex-shrink:0;margin-top:2px;color:var(--accent);}
+.btn-oauth{display:flex;align-items:center;justify-content:center;gap:10px;background:var(--accent);color:var(--bg);padding:14px 20px;border-radius:10px;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:700;cursor:pointer;border:none;transition:all .15s;letter-spacing:.2px;text-decoration:none;box-shadow:0 0 24px rgba(0,212,255,.22);}
+.btn-oauth:hover{background:#1adcff;transform:translateY(-1px);box-shadow:0 4px 28px rgba(0,212,255,.3);}
+.btn-oauth svg{flex-shrink:0;}
+.oauth-footnote{font-size:11px;color:var(--muted);text-align:center;line-height:1.6;margin-top:2px;}
+.oauth-footnote a{color:var(--muted2);text-decoration:none;border-bottom:1px solid var(--border);}
+.oauth-footnote a:hover{color:var(--accent);border-bottom-color:var(--accent);}
+
+/* Advanced token-paste fallback — collapsed by default */
+.advanced-details{border-top:1px solid var(--border);padding:0;}
+.advanced-summary{padding:16px 32px;font-size:12px;color:var(--muted);cursor:pointer;list-style:none;display:flex;align-items:center;gap:8px;user-select:none;transition:color .15s;}
+.advanced-summary::-webkit-details-marker{display:none;}
+.advanced-summary::marker{display:none;}
+.advanced-summary:hover{color:var(--muted2);}
+.advanced-summary .chevron{transition:transform .2s;font-size:10px;}
+.advanced-details[open] .advanced-summary .chevron{transform:rotate(90deg);}
+.advanced-details[open] .advanced-summary{color:var(--muted2);}
+
+/* Steps — still used inside the advanced expander */
+.steps{padding:8px 32px 24px;display:flex;flex-direction:column;}
+.step{display:flex;gap:16px;padding:16px 0;border-bottom:1px solid var(--border);}
+.step:last-child{border-bottom:none;}
+.step-num{width:26px;height:26px;border-radius:50%;background:rgba(0,212,255,.08);border:1px solid rgba(0,212,255,.25);color:var(--accent);font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:2px;}
+.step-content{flex:1;}
+.step-title{font-size:13px;font-weight:600;margin-bottom:4px;}
+.step-desc{font-size:12px;color:var(--muted2);line-height:1.6;}
+.step-desc a{color:var(--accent);text-decoration:none;}
+.step-desc a:hover{text-decoration:underline;}
+.step-desc code{background:var(--bg4);border:1px solid var(--border);border-radius:4px;padding:2px 7px;font-size:11px;font-family:monospace;color:var(--text);}
+.divider{height:1px;background:var(--border);margin:0 32px;}
+
+/* Form */
+.form-section{padding:24px 32px 32px;display:flex;flex-direction:column;gap:16px;}
+.form-group{display:flex;flex-direction:column;gap:7px;}
+label{font-size:10px;letter-spacing:1px;text-transform:uppercase;color:var(--muted2);font-weight:600;}
+input,select{background:var(--bg3);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;padding:11px 14px;transition:border-color .15s;width:100%;outline:none;}
+input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(0,212,255,.07);}
+input::placeholder{color:var(--muted);}
+select{appearance:none;-webkit-appearance:none;padding-right:32px;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%235a6a82' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;cursor:pointer;}
+select option{background:var(--bg3);}
+.btn{padding:13px 20px;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer;border:none;transition:all .15s;width:100%;letter-spacing:.3px;}
+.btn-primary{background:var(--accent);color:var(--bg);box-shadow:0 0 20px rgba(0,212,255,.18);}
+.btn-primary:hover{background:#1adcff;}
+.btn-primary:disabled{opacity:.45;cursor:not-allowed;}
+.btn-ghost{background:transparent;color:var(--muted2);border:1px solid var(--border);width:100%;text-align:center;padding:10px 16px;font-size:12px;}
+.btn-ghost:hover{border-color:var(--border2);color:var(--text);}
+.btn-sm{padding:9px 18px;font-size:12px;width:auto;border-radius:7px;}
+
+/* Status messages */
+.status{padding:12px 16px;border-radius:8px;font-size:12px;display:none;align-items:center;gap:10px;}
+.status.error{display:flex;background:rgba(255,68,102,.07);border:1px solid rgba(255,68,102,.2);color:var(--red);}
+.status.success{display:flex;background:rgba(0,229,160,.07);border:1px solid rgba(0,229,160,.2);color:var(--green);}
+.status.loading{display:flex;background:rgba(0,212,255,.05);border:1px solid rgba(0,212,255,.15);color:var(--accent);}
+.spinner{width:14px;height:14px;border:2px solid rgba(0,212,255,.2);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0;}
+
+/* Inline alert at the top of setup flow (used for ?oauth=error) */
+.top-alert{margin:20px 32px 0;padding:12px 16px;border-radius:8px;font-size:12.5px;line-height:1.55;display:none;gap:10px;align-items:flex-start;}
+.top-alert.error{display:flex;background:rgba(255,68,102,.07);border:1px solid rgba(255,68,102,.2);color:var(--red);}
+.top-alert svg{flex-shrink:0;margin-top:2px;}
+
+/* Database picker screen */
+#db-picker-screen{display:none;}
+.db-picker-header{padding:28px 32px 16px;}
+.db-picker-header h1{font-family:'Syne',sans-serif;font-size:22px;font-weight:800;margin-bottom:8px;}
+.db-picker-header p{font-size:13px;color:var(--muted2);line-height:1.6;}
+.db-picker-workspace{display:inline-block;margin-top:8px;padding:4px 12px;border-radius:4px;font-size:11px;font-weight:600;letter-spacing:.5px;background:rgba(0,212,255,.07);color:var(--accent);border:1px solid rgba(0,212,255,.18);}
+.db-list{padding:8px 32px 0;display:flex;flex-direction:column;gap:8px;}
+.db-item{display:flex;align-items:center;gap:14px;padding:14px 16px;background:var(--bg3);border:1px solid var(--border);border-radius:10px;cursor:pointer;transition:all .15s;text-align:left;width:100%;font-family:'DM Sans',sans-serif;color:var(--text);}
+.db-item:hover{border-color:var(--accent);background:var(--bg4);}
+.db-item:disabled{opacity:.55;cursor:wait;}
+.db-item-icon{width:36px;height:36px;border-radius:6px;background:var(--bg4);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:18px;overflow:hidden;}
+.db-item-icon img{width:100%;height:100%;object-fit:cover;}
+.db-item-icon.default{color:var(--muted);}
+.db-item-body{flex:1;display:flex;flex-direction:column;gap:3px;min-width:0;}
+.db-item-breadcrumb{font-size:10.5px;color:var(--muted);letter-spacing:.2px;line-height:1.3;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.db-item-breadcrumb-sep{opacity:.5;margin:0 4px;}
+.db-item-title{font-size:14px;font-weight:600;color:var(--text);line-height:1.3;word-break:break-word;}
+.db-item-meta{font-size:10.5px;color:var(--muted);letter-spacing:.2px;line-height:1.3;margin-top:1px;}
+.db-item-arrow{color:var(--muted);font-size:14px;flex-shrink:0;align-self:center;}
+.db-item:hover .db-item-arrow{color:var(--accent);}
+.db-loading{padding:32px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:12px;}
+.db-loading-text{font-size:12px;color:var(--muted);letter-spacing:.5px;}
+.db-empty{padding:24px 32px;display:flex;flex-direction:column;gap:12px;background:var(--bg3);border:1px solid var(--border);border-radius:10px;margin:8px 32px;}
+.db-empty-title{font-size:13px;font-weight:600;color:var(--text);}
+.db-empty-desc{font-size:12px;color:var(--muted2);line-height:1.6;}
+.db-picker-actions{padding:20px 32px 32px;display:flex;flex-direction:column;gap:10px;}
+.db-picker-footnote{font-size:11.5px;color:var(--muted);text-align:center;line-height:1.6;padding-top:4px;}
+.db-picker-footnote a{color:var(--muted2);text-decoration:none;border-bottom:1px solid var(--border);}
+.db-picker-footnote a:hover{color:var(--accent);border-bottom-color:var(--accent);}
+
+/* Mapping screen */
+#mapping-screen{display:none;}
+.mapping-header{padding:28px 32px 20px;}
+.mapping-header h1{font-family:'Syne',sans-serif;font-size:22px;font-weight:800;margin-bottom:8px;}
+.mapping-header p{font-size:13px;color:var(--muted2);line-height:1.6;}
+.mapping-db-name{display:inline-block;margin-top:8px;padding:4px 12px;border-radius:4px;font-size:11px;font-weight:600;letter-spacing:.5px;background:rgba(0,212,255,.07);color:var(--accent);border:1px solid rgba(0,212,255,.18);}
+.mapping-section{padding:0 32px;}
+.mapping-section-title{font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--accent);font-weight:700;padding:16px 0 12px;border-bottom:1px solid var(--border);}
+.mapping-row{display:grid;grid-template-columns:1fr 20px 1fr;align-items:center;gap:12px;padding:14px 0;border-bottom:1px solid var(--border);}
+.mapping-row:last-child{border-bottom:none;}
+.mapping-field-label{display:flex;flex-direction:column;gap:3px;}
+.mapping-field-name{font-size:13px;font-weight:600;color:var(--text);}
+.mapping-field-desc{font-size:11px;color:var(--muted);line-height:1.4;}
+.mapping-required{display:inline-block;margin-top:3px;font-size:9px;font-weight:700;letter-spacing:.5px;color:var(--accent);background:rgba(0,212,255,.07);border:1px solid rgba(0,212,255,.18);border-radius:3px;padding:1px 5px;}
+.mapping-optional{display:inline-block;margin-top:3px;font-size:9px;font-weight:700;letter-spacing:.5px;color:var(--muted);background:var(--bg3);border:1px solid var(--border);border-radius:3px;padding:1px 5px;}
+.mapping-arrow{color:var(--muted);font-size:12px;text-align:center;}
+.mapping-select{background:var(--bg3);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;padding:10px 32px 10px 12px;width:100%;transition:border-color .15s;outline:none;appearance:none;-webkit-appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%235a6a82' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;cursor:pointer;}
+.mapping-select:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(0,212,255,.07);}
+.mapping-select.mapped{border-color:rgba(0,212,255,.35);}
+.mapping-select option{background:var(--bg3);}
+.mapping-actions{padding:24px 32px 32px;display:flex;flex-direction:column;gap:12px;}
+.mapping-note{font-size:11px;color:var(--muted);line-height:1.6;padding:12px 16px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;}
+/* Type badges */
+.type-badge{display:inline-block;font-size:9px;font-weight:600;padding:1px 5px;border-radius:3px;margin-left:4px;vertical-align:middle;letter-spacing:.3px;text-transform:uppercase;}
+.type-number{background:rgba(245,200,66,.08);color:#f5c842;border:1px solid rgba(245,200,66,.2);}
+.type-date{background:rgba(139,92,246,.08);color:#8b5cf6;border:1px solid rgba(139,92,246,.2);}
+.type-select{background:rgba(0,212,255,.07);color:var(--accent);border:1px solid rgba(0,212,255,.18);}
+.type-text{background:rgba(90,106,130,.12);color:var(--muted2);border:1px solid var(--border);}
+.type-title{background:rgba(0,229,160,.07);color:var(--green);border:1px solid rgba(0,229,160,.18);}
+.type-other{background:rgba(90,106,130,.08);color:var(--muted);border:1px solid var(--border);}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo"><div class="logo-dot"></div>EDGE<span style="color:var(--accent)">VANTAGE</span></div>
+</header>
+
+<div class="container">
+  <div class="card">
+
+    <!-- Setup flow — hidden by default, shown only when no token exists -->
+    <div id="setup-flow" style="display:none">
+      <div class="card-header">
+        <h1>Connect Your Notion</h1>
+        <p>EdgeVantage reads your trade journal directly from Notion. Click below to connect your workspace securely.</p>
+      </div>
+
+      <!-- Top alert area (used for ?oauth=error messages) -->
+      <div class="top-alert" id="top-alert">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="7"/><line x1="8" y1="5" x2="8" y2="8.5"/><line x1="8" y1="11" x2="8" y2="11"/></svg>
+        <span id="top-alert-text"></span>
+      </div>
+
+      <!-- Primary OAuth path -->
+      <div class="oauth-panel">
+        <a class="btn-oauth" id="oauth-btn" href="#" onclick="startOAuth(event)">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M4.459 4.208c.746.606 1.026.56 2.428.466l13.215-.793c.28 0 .047-.28-.046-.326L17.86 1.68c-.42-.326-.981-.7-2.055-.607L3.01 2.02c-.466.046-.56.28-.374.466zm.793 3.08v13.904c0 .747.373 1.027 1.214.98l14.523-.84c.841-.046.935-.56.935-1.167V6.354c0-.606-.233-.933-.748-.887l-15.177.887c-.56.047-.747.327-.747.933zm14.337.745c.093.42 0 .84-.42.888l-.7.14v10.264c-.608.327-1.168.514-1.635.514-.748 0-.935-.234-1.495-.933l-4.577-7.186v6.952L12.21 19s0 .84-1.168.84l-3.222.186c-.093-.186 0-.653.327-.746l.84-.233V9.854L7.822 9.76c-.094-.42.14-1.026.793-1.073l3.456-.233 4.764 7.279v-6.44l-1.215-.139c-.093-.514.28-.887.747-.933zM1.936 1.35L15.286.4c1.68-.14 2.1-.046 3.176.75l4.015 2.834c.745.56.992.747.992 1.34v18.056c0 1.026-.373 1.633-1.68 1.725l-15.57.933c-.985.047-1.452-.093-1.961-.747L1.89 20.96c-.56-.747-.793-1.307-.793-1.96V2.988c0-.84.373-1.539.84-1.639z"/></svg>
+          Connect with Notion
+        </a>
+        <div class="oauth-tip">
+          <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="7"/><path d="M8 11V8M8 5h.01"/></svg>
+          <span>On Notion's next screen, tick the page that contains your trade journal (not the journal database itself). You'll pick the exact database in the next step.</span>
+        </div>
+        <div class="oauth-benefits">
+          <div class="oauth-benefit">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 8 7 12 13 4"/></svg>
+            <span>You choose exactly which pages to share</span>
+          </div>
+          <div class="oauth-benefit">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 8 7 12 13 4"/></svg>
+            <span>Revoke access anytime from Notion's settings</span>
+          </div>
+        </div>
+        <div class="oauth-footnote">
+          By connecting, you agree to EdgeVantage's
+          <a href="terms.html" target="_blank" rel="noopener">Terms</a>
+          and
+          <a href="privacy.html" target="_blank" rel="noopener">Privacy Policy</a>.
+        </div>
+      </div>
+
+      <!-- Advanced: integration token fallback (collapsed by default) -->
+      <details class="advanced-details">
+        <summary class="advanced-summary">
+          <span class="chevron">▶</span>
+          <span>Advanced: connect with an integration token</span>
+        </summary>
+        <div class="steps">
+          <div class="step">
+            <div class="step-num">1</div>
+            <div class="step-content">
+              <div class="step-title">Create a Notion integration</div>
+              <div class="step-desc">Go to <a href="https://www.notion.so/my-integrations" target="_blank">notion.so/my-integrations</a> and click <strong>New integration</strong>. Give it any name, select your workspace, and click <strong>Save</strong>.</div>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num">2</div>
+            <div class="step-content">
+              <div class="step-title">Copy your integration token</div>
+              <div class="step-desc">On the integration page, click <strong>Show</strong> next to the Internal Integration Secret. Copy that value — it starts with <code>ntn_</code>.</div>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num">3</div>
+            <div class="step-content">
+              <div class="step-title">Connect your database</div>
+              <div class="step-desc">Open your trade journal in Notion. Click the <strong>···</strong> menu in the top right, go to <strong>Connections</strong>, and add the integration you just created.</div>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num">4</div>
+            <div class="step-content">
+              <div class="step-title">Copy your database URL</div>
+              <div class="step-desc">Open your trade journal in Notion and copy the full URL from your browser. Paste it below — we'll extract the ID automatically.</div>
+            </div>
+          </div>
+        </div>
+        <div class="form-section" style="padding-top:0">
+          <div class="form-group">
+            <label>Notion Integration Token</label>
+            <input type="password" id="notion-token" placeholder="ntn_xxxxxxxxxxxxxxxx" autocomplete="off">
+          </div>
+          <div class="form-group">
+            <label>Notion Database URL or ID</label>
+            <input type="text" id="database-id" placeholder="https://www.notion.so/yourworkspace/abc123… or paste ID directly" autocomplete="off">
+          </div>
+          <div class="status" id="connect-status"></div>
+          <button class="btn btn-primary" id="connect-btn" onclick="connect()">Connect with Integration Token</button>
+        </div>
+      </details>
+    </div>
+
+    <!-- Database picker screen — shown after successful OAuth -->
+    <div id="db-picker-screen">
+      <div class="db-picker-header">
+        <h1>Pick Your Trade Journal</h1>
+        <p>EdgeVantage can see the databases below from your Notion workspace. Choose the one that contains your trade journal.</p>
+        <div class="db-picker-workspace" id="db-picker-workspace"></div>
+      </div>
+
+      <!-- Loading state -->
+      <div class="db-loading" id="db-loading">
+        <div class="spinner"></div>
+        <div class="db-loading-text">Loading your databases…</div>
+      </div>
+
+      <!-- List of databases (populated by JS) -->
+      <div class="db-list" id="db-list" style="display:none"></div>
+
+      <!-- Empty state — shown if user granted access to no databases -->
+      <div class="db-empty" id="db-empty" style="display:none">
+        <div class="db-empty-title">No databases shared yet</div>
+        <div class="db-empty-desc">You authorised EdgeVantage but didn't grant access to any databases. Open the re-authorise link below, tick your trade journal in the page-picker, then come back and refresh.</div>
+      </div>
+
+      <!-- Error state -->
+      <div class="status" id="db-picker-status" style="margin:12px 32px"></div>
+
+      <div class="db-picker-actions">
+        <button class="btn btn-ghost" id="db-reauth-btn" onclick="reauthorise()">
+          Add more pages from Notion
+        </button>
+        <div class="db-picker-footnote">
+          Don't see your trade journal? It's probably inside a page you haven't shared yet. <a href="#" onclick="reauthorise();return false;">Re-authorise</a> and tick the parent page, or <a href="#" onclick="disconnectAndStartOver();return false;">start over</a>.
+        </div>
+      </div>
+    </div>
+
+    <!-- Mapping screen -->
+    <div id="mapping-screen">
+      <div class="mapping-header">
+        <h1>Map Your Columns</h1>
+        <p>Tell EdgeVantage which columns in your Notion database contain each piece of trade data. Only Date and R Value are required — everything else is optional.</p>
+        <div class="mapping-db-name" id="mapping-db-name"></div>
+      </div>
+
+      <div class="mapping-section">
+        <div class="mapping-section-title">Required Fields</div>
+        <div class="mapping-row">
+          <div class="mapping-field-label">
+            <div class="mapping-field-name">Date</div>
+            <div class="mapping-field-desc">The date the trade was taken.</div>
+            <span class="mapping-required">Required</span>
+          </div>
+          <div class="mapping-arrow">→</div>
+          <select class="mapping-select" id="map-date" onchange="onSelectChange(this)"><option value="">— choose column —</option></select>
+        </div>
+        <div class="mapping-row">
+          <div class="mapping-field-label">
+            <div class="mapping-field-name">R Value</div>
+            <div class="mapping-field-desc">Profit or loss in R multiples (e.g. 1.5 or −1). Must be a number column.</div>
+            <span class="mapping-required">Required</span>
+          </div>
+          <div class="mapping-arrow">→</div>
+          <select class="mapping-select" id="map-r" onchange="onSelectChange(this)"><option value="">— choose column —</option></select>
+        </div>
+      </div>
+
+      <div class="mapping-section" style="margin-top:8px">
+        <div class="mapping-section-title">Optional Fields</div>
+        <div class="mapping-row">
+          <div class="mapping-field-label">
+            <div class="mapping-field-name">Pair / Instrument</div>
+            <div class="mapping-field-desc">The currency pair or instrument traded (e.g. EURUSD, Gold).</div>
+            <span class="mapping-optional">Optional</span>
+          </div>
+          <div class="mapping-arrow">→</div>
+          <select class="mapping-select" id="map-pair" onchange="onSelectChange(this)"><option value="">— skip this field —</option></select>
+        </div>
+        <div class="mapping-row">
+          <div class="mapping-field-label">
+            <div class="mapping-field-name">Direction</div>
+            <div class="mapping-field-desc">Long or Short. Should contain values like "Long" / "Short" or "Buy" / "Sell".</div>
+            <span class="mapping-optional">Optional</span>
+          </div>
+          <div class="mapping-arrow">→</div>
+          <select class="mapping-select" id="map-direction" onchange="onSelectChange(this)"><option value="">— skip this field —</option></select>
+        </div>
+        <div class="mapping-row">
+          <div class="mapping-field-label">
+            <div class="mapping-field-name">Session</div>
+            <div class="mapping-field-desc">The trading session (e.g. London, New York, Asian).</div>
+            <span class="mapping-optional">Optional</span>
+          </div>
+          <div class="mapping-arrow">→</div>
+          <select class="mapping-select" id="map-session" onchange="onSelectChange(this)"><option value="">— skip this field —</option></select>
+        </div>
+        <div class="mapping-row">
+          <div class="mapping-field-label">
+            <div class="mapping-field-name">Result Override</div>
+            <div class="mapping-field-desc">If you have a Win / Loss / Breakeven column, map it here. If blank, EdgeVantage derives result from R Value.</div>
+            <span class="mapping-optional">Optional</span>
+          </div>
+          <div class="mapping-arrow">→</div>
+          <select class="mapping-select" id="map-result" onchange="onSelectChange(this)"><option value="">— derive from R Value —</option></select>
+        </div>
+        <div class="mapping-row">
+          <div class="mapping-field-label">
+            <div class="mapping-field-name">Entry Time</div>
+            <div class="mapping-field-desc">The time the trade was entered (e.g. 08:30). Text or formula column.</div>
+            <span class="mapping-optional">Optional</span>
+          </div>
+          <div class="mapping-arrow">→</div>
+          <select class="mapping-select" id="map-time" onchange="onSelectChange(this)"><option value="">— skip this field —</option></select>
+        </div>
+        <div class="mapping-row">
+          <div class="mapping-field-label">
+            <div class="mapping-field-name">Notes / Trade Name</div>
+            <div class="mapping-field-desc">Any text notes about the trade. Often the page title or Name column.</div>
+            <span class="mapping-optional">Optional</span>
+          </div>
+          <div class="mapping-arrow">→</div>
+          <select class="mapping-select" id="map-notes" onchange="onSelectChange(this)"><option value="">— skip this field —</option></select>
+        </div>
+        <div class="mapping-row">
+          <div class="mapping-field-label">
+            <div class="mapping-field-name">Stop Loss Size</div>
+            <div class="mapping-field-desc">Size of the stop loss in pips or points. Number column.</div>
+            <span class="mapping-optional">Optional</span>
+          </div>
+          <div class="mapping-arrow">→</div>
+          <select class="mapping-select" id="map-slSize" onchange="onSelectChange(this)"><option value="">— skip this field —</option></select>
+        </div>
+        <div class="mapping-row">
+          <div class="mapping-field-label">
+            <div class="mapping-field-name">Plan Executed</div>
+            <div class="mapping-field-desc">Whether the trade followed the plan. Should contain "Yes" / "No" values.</div>
+            <span class="mapping-optional">Optional</span>
+          </div>
+          <div class="mapping-arrow">→</div>
+          <select class="mapping-select" id="map-planExecuted" onchange="onSelectChange(this)"><option value="">— skip this field —</option></select>
+        </div>
+        <div class="mapping-row">
+          <div class="mapping-field-label">
+            <div class="mapping-field-name">Setup Type</div>
+            <div class="mapping-field-desc">Your setup, pattern, or play for this trade (e.g. Break &amp; Retest, Liquidity Sweep). Unlocks the Expectancy by Setup panel.</div>
+            <span class="mapping-optional">Optional</span>
+          </div>
+          <div class="mapping-arrow">→</div>
+          <select class="mapping-select" id="map-setup" onchange="onSelectChange(this)"><option value="">— skip this field —</option></select>
+        </div>
+      </div>
+
+      <div class="mapping-actions">
+        <div class="mapping-note">Each column shows its Notion property type to help you choose the right one. You can update this mapping at any time from the Settings menu in the dashboard.</div>
+        <div class="status" id="mapping-status"></div>
+        <button class="btn btn-primary" id="save-mapping-btn" onclick="saveMapping()">Save Mapping &amp; Open Dashboard</button>
+        <button class="btn btn-ghost" onclick="goBack()">← Go back</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+const WORKER='https://edgetrack-api.harry5282.workers.dev';
+const TOKEN_STORE_KEY='et_session_token';
+function getStoredToken(){try{return localStorage.getItem(TOKEN_STORE_KEY);}catch(e){return null;}}
+function storeToken(token){try{localStorage.setItem(TOKEN_STORE_KEY,token);}catch(e){}}
+function clearToken(){try{localStorage.removeItem(TOKEN_STORE_KEY);}catch(e){}}
+function authHeaders(extra){const token=getStoredToken();const base={'Content-Type':'application/json'};if(token)base['Authorization']=`Bearer ${token}`;return Object.assign(base,extra||{});}
+
+// ─── OAuth error messages ─────────────────────────────────────────────────
+const OAUTH_ERROR_MESSAGES = {
+  missing_params:  'We didn\u2019t receive a full response from Notion. Please try connecting again.',
+  invalid_state:   'The connection request expired or was tampered with. Please try connecting again.',
+  not_configured:  'EdgeVantage isn\u2019t fully configured for OAuth yet. Please try the token method below, or try again later.',
+  network:         'We couldn\u2019t reach Notion while completing the connection. Please try again.',
+  exchange_failed: 'Notion rejected the authorisation. Please try connecting again.',
+  bad_response:    'Notion sent an unexpected response. Please try again.',
+  access_denied:   'You cancelled the Notion authorisation. No worries \u2014 you can try again anytime.',
+};
+
+function showTopAlert(message){
+  const el=document.getElementById('top-alert');
+  const textEl=document.getElementById('top-alert-text');
+  if(!el||!textEl)return;
+  textEl.textContent=message;
+  el.className='top-alert error';
+}
+function hideTopAlert(){
+  const el=document.getElementById('top-alert');
+  if(el)el.className='top-alert';
+}
+
+// ─── Entry point ──────────────────────────────────────────────────────────
+window.onload=async()=>{
+  const params=new URLSearchParams(window.location.search);
+  const oauthResult=params.get('oauth');
+
+  // Case 1: arrived from OAuth callback with a session token
+  if(oauthResult==='success'){
+    const session=params.get('session');
+    if(session){
+      storeToken(session);
+      // Clean the URL so the session isn't left in browser history
+      cleanUrl();
+      // Decide next screen based on session state
+      await routeAfterOAuth();
+      return;
+    }
+    // Fallthrough: ?oauth=success but no session — treat as error
+  }
+
+  // Case 2: arrived from OAuth callback with an error
+  if(oauthResult==='error'){
+    const reason=params.get('reason')||'missing_params';
+    cleanUrl();
+    showTopAlert(OAUTH_ERROR_MESSAGES[reason]||'Connection failed. Please try again.');
+    document.getElementById('setup-flow').style.display='block';
+    return;
+  }
+
+  // Case 3: already logged in (existing session in localStorage)
+  const token=getStoredToken();
+  if(!token){
+    document.getElementById('setup-flow').style.display='block';
+    return;
+  }
+  try{
+    const resp=await fetch(`${WORKER}/session`,{credentials:'include',headers:{'Authorization':`Bearer ${token}`}});
+    const data=await resp.json();
+    if(data.connected){
+      const remap=params.get('remap')==='true';
+      const picker=params.get('picker')==='true';
+      if(picker){
+        // Dashboard sent them here to switch database
+        showDatabasePicker();
+      } else if(data.hasMapping){
+        if(remap)showMappingScreen();
+        else goToDashboard();
+      } else if(data.databaseName){
+        // Has a database but no mapping — go to mapping
+        showMappingScreen();
+      } else {
+        // OAuth'd but never picked a database — go to picker
+        showDatabasePicker();
+      }
+    } else {
+      clearToken();
+      document.getElementById('setup-flow').style.display='block';
+    }
+  }catch(e){
+    document.getElementById('setup-flow').style.display='block';
+  }
+};
+
+function cleanUrl(){
+  try{history.replaceState({},'',window.location.pathname);}catch(e){}
+}
+
+// After OAuth, decide whether to go to the dashboard, mapping, or database picker.
+async function routeAfterOAuth(){
+  try{
+    const resp=await fetch(`${WORKER}/session`,{credentials:'include',headers:authHeaders()});
+    const data=await resp.json();
+    if(!data.connected){
+      // Something went wrong between callback and session check
+      clearToken();
+      document.getElementById('setup-flow').style.display='block';
+      showTopAlert('Could not verify the connection. Please try again.');
+      return;
+    }
+    if(data.hasMapping){
+      // Returning user with existing mapping — straight to dashboard (per Phase 11 spec)
+      goToDashboard();
+      return;
+    }
+    if(data.databaseName){
+      // Has a database but no mapping yet
+      showMappingScreen();
+      return;
+    }
+    // New OAuth user — needs to pick a database
+    showDatabasePicker();
+  }catch(e){
+    document.getElementById('setup-flow').style.display='block';
+    showTopAlert('Could not reach EdgeVantage. Please try again.');
+  }
+}
+
+// ─── OAuth start ──────────────────────────────────────────────────────────
+function startOAuth(event){
+  if(event)event.preventDefault();
+  hideTopAlert();
+  // Full-page navigation (not a popup) — avoids cross-origin + mobile headaches
+  window.location.href=`${WORKER}/auth/notion/start`;
+}
+
+// Re-authorise (user wants to grant access to more pages/databases)
+function reauthorise(){
+  // Kicks off a fresh OAuth flow. Notion's page-picker lets them choose
+  // which pages to share. After completion they'll bounce back to the
+  // database picker with the expanded set.
+  window.location.href=`${WORKER}/auth/notion/start`;
+}
+
+// Start-over from the picker (logs out, back to setup)
+async function disconnectAndStartOver(){
+  const token=getStoredToken();
+  try{await fetch(`${WORKER}/auth/logout`,{method:'POST',credentials:'include',headers:token?{'Authorization':`Bearer ${token}`}:{}});}catch(e){}
+  clearToken();
+  document.getElementById('db-picker-screen').style.display='none';
+  document.getElementById('setup-flow').style.display='block';
+  hideTopAlert();
+}
+
+// ─── Database picker ──────────────────────────────────────────────────────
+async function showDatabasePicker(){
+  document.getElementById('setup-flow').style.display='none';
+  document.getElementById('mapping-screen').style.display='none';
+  document.getElementById('db-picker-screen').style.display='block';
+
+  // Reset state
+  document.getElementById('db-loading').style.display='flex';
+  document.getElementById('db-list').style.display='none';
+  document.getElementById('db-list').innerHTML='';
+  document.getElementById('db-empty').style.display='none';
+  clearStatus('db-picker-status');
+
+  // Try to pull workspace name from session so header feels personal
+  try{
+    const sessResp=await fetch(`${WORKER}/session`,{credentials:'include',headers:authHeaders()});
+    const sessData=await sessResp.json();
+    if(sessData.workspaceName){
+      document.getElementById('db-picker-workspace').textContent=sessData.workspaceName;
+    }
+  }catch(e){}
+
+  // Load databases
+  try{
+    const resp=await fetch(`${WORKER}/notion/databases`,{credentials:'include',headers:authHeaders()});
+    const data=await resp.json();
+    document.getElementById('db-loading').style.display='none';
+
+    if(!resp.ok){
+      showStatus('db-picker-status','error',data.error||'Could not load your databases. Please try again.');
+      return;
+    }
+
+    const dbs=data.databases||[];
+    if(dbs.length===0){
+      document.getElementById('db-empty').style.display='flex';
+      return;
+    }
+
+    renderDatabaseList(dbs);
+  }catch(e){
+    document.getElementById('db-loading').style.display='none';
+    showStatus('db-picker-status','error','Could not reach EdgeVantage. Please try again.');
+  }
+}
+
+function renderDatabaseList(databases){
+  const list=document.getElementById('db-list');
+  list.innerHTML='';
+  databases.forEach(db=>{
+    const btn=document.createElement('button');
+    btn.className='db-item';
+    btn.onclick=()=>pickDatabase(db.id,btn);
+
+    // Icon
+    const iconEl=document.createElement('div');
+    iconEl.className='db-item-icon';
+    if(db.icon&&db.icon.type==='emoji'){
+      iconEl.textContent=db.icon.value;
+    } else if(db.icon&&db.icon.type==='image'){
+      const img=document.createElement('img');
+      img.src=db.icon.value;img.alt='';
+      img.onerror=()=>{iconEl.classList.add('default');iconEl.textContent='📊';};
+      iconEl.appendChild(img);
+    } else {
+      iconEl.classList.add('default');
+      iconEl.textContent='📊';
+    }
+
+    // Body (breadcrumb + title + last-edited stack)
+    const bodyEl=document.createElement('div');
+    bodyEl.className='db-item-body';
+
+    if(db.breadcrumb&&db.breadcrumb.length){
+      const crumb=document.createElement('div');
+      crumb.className='db-item-breadcrumb';
+      crumb.textContent=db.breadcrumb.join(' › ');
+      bodyEl.appendChild(crumb);
+    }
+
+    const titleEl=document.createElement('div');
+    titleEl.className='db-item-title';
+    titleEl.textContent=db.title;
+    bodyEl.appendChild(titleEl);
+
+    if(db.lastEditedTime){
+      const meta=document.createElement('div');
+      meta.className='db-item-meta';
+      meta.textContent='Last edited '+formatRelativeTime(db.lastEditedTime);
+      bodyEl.appendChild(meta);
+    }
+
+    const arrowEl=document.createElement('div');
+    arrowEl.className='db-item-arrow';
+    arrowEl.textContent='→';
+
+    btn.appendChild(iconEl);
+    btn.appendChild(bodyEl);
+    btn.appendChild(arrowEl);
+    list.appendChild(btn);
+  });
+  list.style.display='flex';
+}
+
+// "Last edited X ago" — short, human-friendly format
+function formatRelativeTime(iso){
+  try{
+    const then=new Date(iso).getTime();
+    const now=Date.now();
+    const diff=Math.max(0,now-then);
+    const min=60*1000,hour=60*min,day=24*hour,week=7*day,month=30*day,year=365*day;
+    if(diff<hour)      return Math.max(1,Math.floor(diff/min))+' min ago';
+    if(diff<day)       return Math.floor(diff/hour)+' hour'+(Math.floor(diff/hour)===1?'':'s')+' ago';
+    if(diff<week)      return Math.floor(diff/day)+' day'+(Math.floor(diff/day)===1?'':'s')+' ago';
+    if(diff<month)     return Math.floor(diff/week)+' week'+(Math.floor(diff/week)===1?'':'s')+' ago';
+    if(diff<year)      return Math.floor(diff/month)+' month'+(Math.floor(diff/month)===1?'':'s')+' ago';
+    return Math.floor(diff/year)+' year'+(Math.floor(diff/year)===1?'':'s')+' ago';
+  }catch(e){return '';}
+}
+
+async function pickDatabase(databaseId,btn){
+  // Disable all items while we save
+  document.querySelectorAll('.db-item').forEach(el=>el.disabled=true);
+  clearStatus('db-picker-status');
+  showStatus('db-picker-status','loading','Connecting to that database…');
+
+  try{
+    const resp=await fetch(`${WORKER}/auth/database`,{
+      method:'POST',credentials:'include',
+      headers:authHeaders(),
+      body:JSON.stringify({databaseId})
+    });
+    const data=await resp.json();
+    if(!resp.ok){
+      document.querySelectorAll('.db-item').forEach(el=>el.disabled=false);
+      showStatus('db-picker-status','error',data.error||'Could not connect to that database. Try another.');
+      return;
+    }
+    showStatus('db-picker-status','success',`Connected to "${data.databaseName}" — loading columns…`);
+    // If user already had this mapping (rare — same DB reconnect) go straight to dashboard
+    if(data.hasMapping){
+      setTimeout(goToDashboard,900);
+    } else {
+      setTimeout(showMappingScreen,900);
+    }
+  }catch(e){
+    document.querySelectorAll('.db-item').forEach(el=>el.disabled=false);
+    showStatus('db-picker-status','error','Could not reach EdgeVantage. Please try again.');
+  }
+}
+
+// ─── Legacy token-paste flow (kept as fallback) ───────────────────────────
+function parseDatabaseId(input){
+  input=input.trim();
+  if(input.startsWith('http')||input.includes('notion.so')){const match=input.match(/([a-f0-9]{32})|([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})/i);if(match)return match[0].replace(/-/g,'');return null;}
+  return input.replace(/-/g,'');
+}
+
+async function connect(){
+  const token=document.getElementById('notion-token').value.trim();
+  const rawDb=document.getElementById('database-id').value.trim();
+  const dbId=parseDatabaseId(rawDb);
+  const btn=document.getElementById('connect-btn');
+  if(!token)return showStatus('connect-status','error','Please enter your Notion integration token.');
+  if(!token.startsWith('secret_')&&!token.startsWith('ntn_'))return showStatus('connect-status','error','Token should start with "ntn_" or "secret_". Check you copied it correctly.');
+  if(!rawDb)return showStatus('connect-status','error','Please enter your Notion database URL or ID.');
+  if(!dbId||dbId.length<32)return showStatus('connect-status','error','Could not find a valid database ID. Try pasting the full Notion URL.');
+  btn.disabled=true;showStatus('connect-status','loading','Validating your Notion credentials…');
+  try{
+    const resp=await fetch(`${WORKER}/auth/connect`,{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({notionToken:token,databaseId:dbId})});
+    const data=await resp.json();
+    if(!resp.ok){showStatus('connect-status','error',data.error||'Connection failed. Please check your credentials.');btn.disabled=false;return;}
+    storeToken(data.sessionToken);
+    if(data.hasMapping){showStatus('connect-status','success',`Reconnected to "${data.databaseName}" — redirecting…`);setTimeout(goToDashboard,1500);}
+    else{showStatus('connect-status','success',`Connected to "${data.databaseName}" — now let's map your columns.`);setTimeout(showMappingScreen,800);}
+  }catch(e){showStatus('connect-status','error','Could not reach EdgeVantage server. Please try again.');btn.disabled=false;}
+}
+
+// ─── Mapping screen (unchanged behaviour) ─────────────────────────────────
+let schemaColumns=[];
+
+async function showMappingScreen(){
+  const setupFlow=document.getElementById('setup-flow');
+  const dbPicker=document.getElementById('db-picker-screen');
+  const mappingScreen=document.getElementById('mapping-screen');
+
+  if(setupFlow)setupFlow.style.display='none';
+  if(dbPicker)dbPicker.style.display='none';
+  mappingScreen.style.display='none';
+
+  const card=document.querySelector('.card');
+  const loader=document.createElement('div');
+  loader.id='schema-loader';
+  loader.style.cssText='padding:48px 32px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:14px;';
+  loader.innerHTML='<div style="width:28px;height:28px;border:2px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite"></div><div style="font-size:12px;color:var(--muted);letter-spacing:.5px">Loading your Notion columns…</div>';
+  card.appendChild(loader);
+
+  try{
+    const resp=await fetch(`${WORKER}/notion/schema`,{credentials:'include',headers:authHeaders()});
+    loader.remove();
+
+    if(!resp.ok){
+      const err=await resp.json();
+      mappingScreen.style.display='block';
+      showStatus('mapping-status','error',err.error||'Could not load your Notion columns. Please go back and try again.');
+      return;
+    }
+
+    const data=await resp.json();
+    schemaColumns=data.columns||[];
+    document.getElementById('mapping-db-name').textContent=data.databaseName||'Your Database';
+    populateMappingDropdowns(schemaColumns);
+    clearStatus('mapping-status');
+    mappingScreen.style.display='block';
+  }catch(e){
+    loader.remove();
+    mappingScreen.style.display='block';
+    showStatus('mapping-status','error','Could not reach EdgeVantage. Please go back and try again.');
+  }
+}
+
+const FIELD_TYPE_HINTS={
+  'map-date':['date'],'map-r':['number','formula'],
+  'map-pair':['select','multi_select','rich_text','title'],
+  'map-direction':['select','multi_select','rich_text'],
+  'map-session':['select','multi_select','rich_text'],
+  'map-result':['select','multi_select','rich_text','status'],
+  'map-time':['rich_text','title','formula','select'],
+  'map-notes':['title','rich_text'],
+  'map-slSize':['number','formula'],
+  'map-planExecuted':['select','multi_select','rich_text','status'],
+  'map-setup':['select','multi_select','rich_text','status'],
+};
+
+function typeInfo(type){
+  if(type==='number'||type==='formula')return{label:type,cls:'type-number'};
+  if(type==='date')return{label:'date',cls:'type-date'};
+  if(type==='select'||type==='multi_select'||type==='status')return{label:'select',cls:'type-select'};
+  if(type==='title')return{label:'title',cls:'type-title'};
+  if(type==='rich_text')return{label:'text',cls:'type-text'};
+  return{label:type,cls:'type-other'};
+}
+
+function populateMappingDropdowns(columns){
+  const selects=['map-date','map-r','map-pair','map-direction','map-session','map-result','map-time','map-notes','map-slSize','map-planExecuted','map-setup'];
+  selects.forEach(selectId=>{
+    const el=document.getElementById(selectId);if(!el)return;
+    const firstOption=el.options[0];el.innerHTML='';el.appendChild(firstOption);
+    const preferred=FIELD_TYPE_HINTS[selectId]||[];
+    const sorted=[...columns].sort((a,b)=>{const aP=preferred.includes(a.type)?0:1,bP=preferred.includes(b.type)?0:1;if(aP!==bP)return aP-bP;return a.name.localeCompare(b.name);});
+    sorted.forEach(col=>{const info=typeInfo(col.type);const opt=document.createElement('option');opt.value=col.name;opt.textContent=col.name+' ['+info.label+']';el.appendChild(opt);});
+    autoSelect(el,selectId,columns);
+  });
+}
+
+function autoSelect(el,selectId,columns){
+  const GUESSES={
+    'map-date':['date','Date','Trade Date','Entry Date'],
+    'map-r':['Result','R','R Value','P&L','PnL','Outcome','R Multiple'],
+    'map-pair':['Pair','Instrument','Symbol','Market','Currency Pair'],
+    'map-direction':['Position','Direction','Type','Side','Long/Short','Buy/Sell'],
+    'map-session':['Session','Market Session','Time Zone'],
+    'map-result':['Outcome','Win/Loss','Result','Trade Result','Status'],
+    'map-time':['Time','Entry Time','Open Time'],
+    'map-notes':['Name','Notes','Description','Trade Notes','Comments'],
+    'map-slSize':['SL Size','SL','Stop Loss','Stop Size','SL SIze'],
+    'map-planExecuted':['Plan Executed','Rule Based','Followed Plan','Execution'],
+    'map-setup':['Setup','Setup Type','Strategy','Pattern','Play'],
+  };
+  const guesses=GUESSES[selectId]||[];
+  for(const guess of guesses){
+    for(let i=0;i<el.options.length;i++){
+      if(el.options[i].value.toLowerCase()===guess.toLowerCase()){el.selectedIndex=i;if(el.value)el.classList.add('mapped');return;}
+    }
+  }
+}
+
+function onSelectChange(el){el.classList.toggle('mapped',!!el.value);}
+
+async function saveMapping(){
+  const dateVal=document.getElementById('map-date').value,rVal=document.getElementById('map-r').value;
+  if(!dateVal)return showStatus('mapping-status','error','Please map the Date field — it is required.');
+  if(!rVal)return showStatus('mapping-status','error','Please map the R Value field — it is required.');
+  const btn=document.getElementById('save-mapping-btn');btn.disabled=true;
+  showStatus('mapping-status','loading','Saving your mapping…');
+  const fieldMapping={
+    date:dateVal,r:rVal,
+    pair:document.getElementById('map-pair').value||null,
+    direction:document.getElementById('map-direction').value||null,
+    session:document.getElementById('map-session').value||null,
+    result:document.getElementById('map-result').value||null,
+    time:document.getElementById('map-time').value||null,
+    notes:document.getElementById('map-notes').value||null,
+    slSize:document.getElementById('map-slSize').value||null,
+    planExecuted:document.getElementById('map-planExecuted').value||null,
+    setup:document.getElementById('map-setup').value||null,
+  };
+  try{
+    const resp=await fetch(`${WORKER}/auth/mapping`,{method:'POST',credentials:'include',headers:authHeaders(),body:JSON.stringify({fieldMapping})});
+    const data=await resp.json();
+    if(!resp.ok){showStatus('mapping-status','error',data.error||'Could not save mapping. Please try again.');btn.disabled=false;return;}
+    showStatus('mapping-status','success','Mapping saved — opening your dashboard…');
+    setTimeout(goToDashboard,1200);
+  }catch(e){showStatus('mapping-status','error','Could not reach EdgeVantage. Please try again.');btn.disabled=false;}
+}
+
+async function disconnect(){
+  const token=getStoredToken();
+  try{await fetch(`${WORKER}/auth/logout`,{method:'POST',credentials:'include',headers:token?{'Authorization':`Bearer ${token}`}:{}});}catch(e){}
+  clearToken();
+  document.getElementById('mapping-screen').style.display='none';
+  document.getElementById('db-picker-screen').style.display='none';
+  document.getElementById('setup-flow').style.display='block';
+}
+
+// Go Back always returns to dashboard when remapping, or to picker if user has OAuth session,
+// or to connect form for fully new users.
+function goBack(){
+  const remap=new URLSearchParams(window.location.search).get('remap')==='true';
+  if(remap){goToDashboard();return;}
+  const token=getStoredToken();
+  if(token){
+    // They got to mapping via OAuth → picker → mapping. Go back to picker.
+    document.getElementById('mapping-screen').style.display='none';
+    showDatabasePicker();
+  } else {
+    document.getElementById('mapping-screen').style.display='none';
+    document.getElementById('setup-flow').style.display='block';
+    const cb=document.getElementById('connect-btn');if(cb)cb.disabled=false;
+  }
+}
+function goToDashboard(){window.location.href='trading-dashboard.html';}
+
+function showStatus(id,type,message){
+  const el=document.getElementById(id);if(!el)return;
+  el.className=`status ${type}`;
+  if(type==='loading')el.innerHTML=`<div class="spinner"></div><span>${message}</span>`;
+  else el.textContent=message;
+}
+function clearStatus(id){const el=document.getElementById(id);if(!el)return;el.className='status';el.textContent='';}
+</script>
+</body>
+</html>
