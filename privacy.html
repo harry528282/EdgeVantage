@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EdgeVantage — Privacy Policy</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%23080c12'/%3E%3Crect width='32' height='32' rx='6' fill='none' stroke='%2300d4ff' stroke-width='1.5'/%3E%3Ccircle cx='16' cy='16' r='4' fill='%2300d4ff'/%3E%3C/svg%3E">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=Syne:wght@700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#080c12;
+  --bg2:#131c2b;
+  --bg3:#1a2538;
+  --bg4:#202e42;
+  --border:#233044;
+  --border2:#2d3f58;
+  --text:#e8edf5;
+  --muted:#5a6a82;
+  --muted2:#8899b0;
+  --accent:#00d4ff;
+  --green:#00e5a0;
+  --red:#ff4466;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;padding:24px;}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1);}50%{opacity:.6;transform:scale(.85);}}
+header{position:fixed;top:0;left:0;right:0;height:60px;background:rgba(8,12,18,0.97);backdrop-filter:blur(16px);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 28px;z-index:100;}
+.logo{font-family:'Syne',sans-serif;font-size:18px;font-weight:800;letter-spacing:-0.5px;display:flex;align-items:center;gap:10px;text-decoration:none;color:var(--text);}
+.logo-dot{width:8px;height:8px;border-radius:50%;background:var(--accent);box-shadow:0 0 8px var(--accent);animation:pulse 2s infinite;}
+.container{width:100%;max-width:720px;margin:72px auto 0;padding-bottom:64px;}
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:14px;overflow:hidden;box-shadow:0 8px 40px rgba(0,0,0,.5);padding:40px 44px;}
+h1{font-family:'Syne',sans-serif;font-size:28px;font-weight:800;margin-bottom:6px;letter-spacing:-.5px;}
+.updated{font-size:11px;letter-spacing:1px;text-transform:uppercase;color:var(--muted);font-weight:600;margin-bottom:28px;}
+h2{font-family:'Syne',sans-serif;font-size:15px;font-weight:700;margin-top:28px;margin-bottom:10px;color:var(--accent);letter-spacing:.3px;}
+h2:first-of-type{margin-top:0;}
+p{font-size:13.5px;color:var(--muted2);line-height:1.75;margin-bottom:12px;}
+ul{list-style:none;margin-bottom:12px;}
+ul li{font-size:13.5px;color:var(--muted2);line-height:1.75;padding-left:18px;position:relative;margin-bottom:6px;}
+ul li::before{content:'';position:absolute;left:0;top:10px;width:6px;height:6px;border-radius:50%;background:var(--accent);opacity:.5;}
+strong{color:var(--text);font-weight:600;}
+a{color:var(--accent);text-decoration:none;}
+a:hover{text-decoration:underline;}
+code{background:var(--bg4);border:1px solid var(--border);border-radius:4px;padding:2px 7px;font-size:11.5px;font-family:monospace;color:var(--text);}
+.back-link{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--muted2);margin-top:32px;padding-top:24px;border-top:1px solid var(--border);text-decoration:none;}
+.back-link:hover{color:var(--accent);}
+@media (max-width:640px){
+  .card{padding:28px 24px;}
+  h1{font-size:24px;}
+}
+</style>
+</head>
+<body>
+<header>
+  <a href="onboarding.html" class="logo"><span class="logo-dot"></span>EdgeVantage</a>
+</header>
+<div class="container">
+  <div class="card">
+    <h1>Privacy Policy</h1>
+    <div class="updated">Last updated: April 18, 2026</div>
+
+    <p>EdgeVantage is a trading analytics dashboard that reads a trade journal you keep in Notion and renders performance metrics. This policy describes exactly what data we handle and why. It is deliberately short because EdgeVantage is deliberately small — there is no marketing pixel, no analytics tracker, no ad network, and nothing sold to anyone.</p>
+
+    <h2>What we collect</h2>
+    <p>When you connect your Notion workspace to EdgeVantage, we store:</p>
+    <ul>
+      <li>A <strong>Notion access token</strong> granted by you through Notion's OAuth flow (or pasted by you as an internal integration token). This token is scoped only to the pages and databases you explicitly shared with EdgeVantage.</li>
+      <li>Your <strong>Notion workspace ID and name</strong>, as returned by Notion when the connection is made.</li>
+      <li>The <strong>database ID</strong> of the trade journal you choose to analyse, and its name.</li>
+      <li>The <strong>column mapping</strong> you configure (which Notion properties map to "date", "R value", etc.).</li>
+      <li>Your <strong>UI preferences</strong> (theme, panel layouts, tile positions) if you choose to sync them to your account rather than keep them in your browser.</li>
+    </ul>
+
+    <p>We do <strong>not</strong> store a copy of your trade journal rows. Every time you load the dashboard, the rows are fetched from Notion on demand, rendered in your browser, and discarded when you close the tab.</p>
+
+    <h2>Where it is stored</h2>
+    <p>All account data is stored in Cloudflare Workers KV, a managed key-value store operated by Cloudflare. The Notion access token is encrypted at rest using AES-GCM with a key held server-side; the database ID, mapping, and preferences are stored as plain JSON in the same record.</p>
+
+    <p>Session cookies and session tokens are signed with HMAC-SHA-256 so the server can verify them without a database lookup.</p>
+
+    <h2>Who it is shared with</h2>
+    <p>No one. EdgeVantage does not sell, rent, or share your data with third parties. The only external service your data passes through is <strong>Notion's API</strong> — which is unavoidable, because that is where your trade journal lives and where the access token is issued.</p>
+
+    <p>We do not use third-party analytics, advertising, tracking pixels, or session replay tools.</p>
+
+    <h2>How long it is kept</h2>
+    <p>Your user record is kept as long as you use EdgeVantage. If you do not log in for 90 days, the record expires automatically from Cloudflare KV. You can also delete your account at any time from the dashboard's Settings menu — this immediately erases your encrypted token, mapping, and preferences from our storage.</p>
+
+    <p>Deleting your EdgeVantage account does <strong>not</strong> delete your Notion database. Your trade journal is your own — EdgeVantage only reads from it.</p>
+
+    <h2>Your rights</h2>
+    <p>You can at any time:</p>
+    <ul>
+      <li><strong>Disconnect</strong> — log out of EdgeVantage. Your account record stays but the session ends.</li>
+      <li><strong>Delete your account</strong> — from the dashboard's Settings menu. This immediately purges your record.</li>
+      <li><strong>Revoke access from Notion's side</strong> — go to <a href="https://www.notion.so/profile/integrations" target="_blank" rel="noopener">your Notion integrations page</a> and remove EdgeVantage. The access token becomes immediately invalid; the next time EdgeVantage tries to use it, it will fail.</li>
+      <li><strong>Request a copy of your data</strong> — contact us. Your EdgeVantage record is small (a few kilobytes of JSON) and we will send it to you.</li>
+    </ul>
+
+    <p>Under UK GDPR you also have rights of rectification, restriction, and complaint to the Information Commissioner's Office. EdgeVantage is a personal project, not a company, but we will honour these rights in good faith.</p>
+
+    <h2>Cookies</h2>
+    <p>EdgeVantage sets a single cookie, <code>et_session</code>, which contains your signed session token. It is used only to keep you logged in. It is not used for tracking, analytics, or advertising. The same token is also stored in your browser's <code>localStorage</code> as a fallback when cookies are unavailable.</p>
+
+    <h2>Security</h2>
+    <p>Notion access tokens are encrypted before being written to storage. Session identifiers are signed with HMAC so they cannot be forged. All traffic between your browser and EdgeVantage runs over HTTPS. However, no online service is perfectly secure, and EdgeVantage is provided without warranty — see the <a href="terms.html">terms of use</a>.</p>
+
+    <h2>Changes to this policy</h2>
+    <p>If this policy changes materially, the "last updated" date above will change and — if the change reduces your rights or expands what we collect — we will show a notice in EdgeVantage before it takes effect.</p>
+
+    <h2>Contact</h2>
+    <p>EdgeVantage is maintained by an individual developer. For privacy questions, data requests, or account deletion assistance, raise an issue on the project's GitHub repository or contact the maintainer directly through the email listed there.</p>
+
+    <a href="onboarding.html" class="back-link">← Back to EdgeVantage</a>
+  </div>
+</div>
+</body>
+</html>
